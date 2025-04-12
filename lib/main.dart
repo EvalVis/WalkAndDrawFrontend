@@ -27,7 +27,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com', 'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
+    auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com',
+        'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
   }
 
   @override
@@ -35,10 +36,12 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Walk and Draw',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: _credentials == null ? _buildLoginScreen() : MapScreen(
-        credentials: _credentials!,
-        onLogout: _handleLogout,
-      ),
+      home: _credentials == null
+          ? _buildLoginScreen()
+          : MapScreen(
+              credentials: _credentials!,
+              onLogout: _handleLogout,
+            ),
     );
   }
 
@@ -55,9 +58,9 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _handleLogin() async {
     try {
-      final credentials = await auth0.webAuthentication(
-        scheme: 'com.programmersdiary.walk_and_draw'
-      ).login();
+      final credentials = await auth0
+          .webAuthentication(scheme: 'com.programmersdiary.walkanddraw')
+          .login();
 
       setState(() {
         _credentials = credentials;
@@ -69,9 +72,9 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _handleLogout() async {
     try {
-      await auth0.webAuthentication(
-        scheme: 'com.programmersdiary.walk_and_draw'
-      ).logout();
+      await auth0
+          .webAuthentication(scheme: 'com.programmersdiary.walkanddraw')
+          .logout();
 
       setState(() {
         _credentials = null;
@@ -87,7 +90,7 @@ class MapScreen extends StatefulWidget {
   final VoidCallback onLogout;
 
   const MapScreen({
-    super.key, 
+    super.key,
     required this.credentials,
     required this.onLogout,
   });
@@ -193,10 +196,12 @@ class _MapScreenState extends State<MapScreen> {
     for (var i = 0; i < points.length; i++) {
       _circles.add(
         Circle(
-          circleId: CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
+          circleId:
+              CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
           center: points[i],
           radius: 5, // Small radius for subtle visualization
-          fillColor: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
+          fillColor:
+              const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
           strokeColor: Colors.red,
           strokeWidth: 1,
         ),
@@ -206,7 +211,8 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _polylines.add(
         Polyline(
-          polylineId: PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
+          polylineId:
+              PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
           points: points,
           color: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
           width: 3,
@@ -218,7 +224,8 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _requestDrawingSuggestion() async {
     if (_model == null || _currentPosition == null) {
-      print('Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
+      print(
+          'Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
       return;
     }
 
@@ -272,7 +279,8 @@ class _MapScreenState extends State<MapScreen> {
           // Parse each coordinate and create LatLng points
           for (var i = 0; i < coordinates.length; i++) {
             final coord = coordinates[i];
-            final point = LatLng(coord['lat'].toDouble(), coord['lng'].toDouble());
+            final point =
+                LatLng(coord['lat'].toDouble(), coord['lng'].toDouble());
             points.add(point);
 
             // Calculate distance between consecutive points
@@ -316,11 +324,13 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentPosition == null) return;
 
     final random = math.Random();
-    final numPoints = random.nextInt(81) + 20; // Random between 20 and 100 points
+    final numPoints =
+        random.nextInt(81) + 20; // Random between 20 and 100 points
     final points = <LatLng>[];
 
     // Start from current location
-    final startPoint = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    final startPoint =
+        LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     points.add(startPoint);
 
     double totalDistance = 0;
