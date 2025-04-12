@@ -41,6 +41,7 @@ class _MapScreenState extends State<MapScreen> {
   Set<Circle> _circles = {};
   GenerativeModel? _model;
   bool _isLoading = false;
+  bool _isDrawingVisible = true;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -142,6 +143,9 @@ class _MapScreenState extends State<MapScreen> {
 
     setState(() {
       _isLoading = true;
+      // Clear previous drawing
+      _polylines.clear();
+      _circles.clear();
     });
 
     try {
@@ -247,6 +251,7 @@ class _MapScreenState extends State<MapScreen> {
                 width: 3,
               ),
             );
+            _isDrawingVisible = true;
           });
         } catch (e) {
           print('Error parsing Gemini response: $e');
@@ -411,6 +416,7 @@ class _MapScreenState extends State<MapScreen> {
           width: 3,
         ),
       );
+      _isDrawingVisible = true;
     });
   }
 
@@ -424,40 +430,85 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: const Text('Walk and Draw'),
         actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'suggest',
+                    child: Row(
+                      children: [
+                        if (_isLoading)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.black87),
+                              ),
+                            ),
+                          ),
+                        Text(_isLoading ? 'Generating...' : 'Suggest Drawing'),
+                      ],
+                    ),
                   ),
-                ),
+                  if (_polylines.isNotEmpty)
+                    PopupMenuItem(
+                      value: 'toggle',
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isDrawingVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_isDrawingVisible
+                              ? 'Hide AI Drawing'
+                              : 'Show AI Drawing'),
+                        ],
+                      ),
+                    ),
+                ],
+                onSelected: (value) {
+                  if (value == 'toggle') {
+                    setState(() {
+                      _isDrawingVisible = !_isDrawingVisible;
+                    });
+                  } else if (value == 'suggest' && !_isLoading) {
+                    _requestDrawingSuggestion();
+                  }
+                },
               ),
             ),
-          IconButton(
-            icon: const Icon(Icons.brush),
-            tooltip: 'Suggest Drawing',
-            onPressed: _requestDrawingSuggestion,
           ),
         ],
       ),
-      body: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _currentPosition != null
-              ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-              : _defaultCenter,
-          zoom: 15.0,
-        ),
-        myLocationEnabled: _locationPermissionGranted,
-        myLocationButtonEnabled: _locationPermissionGranted,
-        markers: _markers,
-        polylines: _polylines,
-        circles: _circles,
+      body: Stack(
+        children: [
+          GoogleMap(
+            onMapCreated: _onMapCreated,
+            initialCameraPosition: CameraPosition(
+              target: _currentPosition != null
+                  ? LatLng(
+                      _currentPosition!.latitude, _currentPosition!.longitude)
+                  : _defaultCenter,
+              zoom: 15.0,
+            ),
+            myLocationEnabled: _locationPermissionGranted,
+            myLocationButtonEnabled: _locationPermissionGranted,
+            markers: _markers,
+            polylines: _isDrawingVisible ? _polylines : {},
+            circles: _isDrawingVisible ? _circles : {},
+          ),
+        ],
       ),
     );
   }
