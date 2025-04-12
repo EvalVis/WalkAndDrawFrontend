@@ -42,6 +42,7 @@ class _MapScreenState extends State<MapScreen> {
   GenerativeModel? _model;
   bool _isLoading = false;
   bool _isDrawingVisible = true;
+  bool _isGettingSuggestion = false;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -420,6 +421,77 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
+  // Add new method for getting drawing suggestions
+  Future<void> _getDrawingSuggestion() async {
+    if (_model == null) {
+      print('Model not initialized');
+      return;
+    }
+
+    setState(() {
+      _isGettingSuggestion = true;
+    });
+
+    try {
+      // Add random seed to prevent caching
+      final random = math.Random();
+      final categories = [
+        'animal',
+        'object',
+        'character',
+        'vehicle',
+        'food',
+        'plant'
+      ];
+      final selectedCategory = categories[random.nextInt(categories.length)];
+
+      final prompt =
+          '''Suggest a creative ${selectedCategory} to draw on a map. Requirements:
+1. Must be a single word or short phrase (a sentence long max)
+2. Should be something recognizable when drawn on a map
+3. Must be different from: kite, butterfly, cat, house, or stick figure
+4. Keep it family-friendly and fun
+5. Be creative and unexpected - ${random.nextInt(10000)} (random seed to prevent caching)
+
+Return ONLY the suggestion without any additional text or formatting.''';
+
+      final content = [Content.text(prompt)];
+      final response = await _model!.generateContent(content);
+
+      if (response.text != null) {
+        // Show suggestion in a dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Drawing Suggestion'),
+              content: Text(response.text!.trim()),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _getDrawingSuggestion();
+                  },
+                  child: const Text('Suggest something else!'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error getting drawing suggestion: $e');
+    } finally {
+      setState(() {
+        _isGettingSuggestion = false;
+      });
+    }
+  }
+
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
@@ -436,6 +508,27 @@ class _MapScreenState extends State<MapScreen> {
               child: PopupMenuButton<String>(
                 icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'what_to_draw',
+                    child: Row(
+                      children: [
+                        if (_isGettingSuggestion)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.black87),
+                              ),
+                            ),
+                          ),
+                        const Text('Suggest what to draw'),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem(
                     value: 'suggest',
                     child: Row(
@@ -484,6 +577,8 @@ class _MapScreenState extends State<MapScreen> {
                     });
                   } else if (value == 'suggest' && !_isLoading) {
                     _requestDrawingSuggestion();
+                  } else if (value == 'what_to_draw' && !_isGettingSuggestion) {
+                    _getDrawingSuggestion();
                   }
                 },
               ),
