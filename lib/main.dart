@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io' show Platform, exit;
+import 'chatbot_widget.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,20 +103,30 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: const Text('Walk and Draw'),
       ),
-      body: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _currentPosition != null
-              ? LatLng(
-                  _currentPosition!.latitude,
-                  _currentPosition!.longitude,
-                )
-              : _center,
-          zoom: 15.0,
-        ),
-        myLocationEnabled: _locationPermissionGranted,
-        myLocationButtonEnabled: _locationPermissionGranted,
-        markers: _markers,
+      body: Column(
+        children: [
+          Expanded(
+            child: GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _currentPosition != null
+                    ? LatLng(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                      )
+                    : _center,
+                zoom: 15.0,
+              ),
+              myLocationEnabled: _locationPermissionGranted,
+              myLocationButtonEnabled: _locationPermissionGranted,
+              markers: _markers,
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: ChatbotWidget(),
+          ),
+        ],
       ),
     );
   }
