@@ -13,6 +13,7 @@ dependencies:
   geolocator: ^10.1.0
   google_generative_ai: ^0.2.0
   cupertino_icons: ^1.0.2
+  auth0_flutter: ^1.9.0
 
 dev_dependencies:
   flutter_test:
