@@ -111,20 +111,6 @@ class _MapScreenState extends State<MapScreen> {
     final latLng =
         LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
 
-    setState(() {
-      _markers = {
-        Marker(
-          markerId: const MarkerId('current_location'),
-          position: latLng,
-          infoWindow: const InfoWindow(
-            title: 'Current Location',
-            snippet: 'You are here',
-          ),
-        ),
-      };
-    });
-
-    // Move camera to current location
     mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -211,15 +197,6 @@ class _MapScreenState extends State<MapScreen> {
           print('Total path distance: ${totalDistance / 1000} kilometers');
           print('Number of points: ${points.length}');
 
-          // Generate random color for the polyline
-          final random = math.Random();
-          final color = Color.fromARGB(
-            255,
-            random.nextInt(256),
-            random.nextInt(256),
-            random.nextInt(256),
-          );
-
           // Clear previous circles
           _circles.clear();
 
@@ -231,12 +208,9 @@ class _MapScreenState extends State<MapScreen> {
                     'point_${DateTime.now().millisecondsSinceEpoch}_$i'),
                 center: points[i],
                 radius: 5, // Small radius for subtle visualization
-                fillColor: i == 0 || i == points.length - 1
-                    ? Color.fromRGBO(0, 255, 0, 0.7) // Start/end point in green
-                    : Color.fromRGBO(0, 0, 255, 0.7), // Other points in blue
-                strokeColor: i == 0 || i == points.length - 1
-                    ? Colors.green
-                    : Colors.blue,
+                fillColor: const Color.fromRGBO(
+                    255, 0, 0, 0.8), // Red with 80% opacity
+                strokeColor: Colors.red,
                 strokeWidth: 1,
               ),
             );
@@ -248,7 +222,8 @@ class _MapScreenState extends State<MapScreen> {
                 polylineId: PolylineId(
                     'drawing_${DateTime.now().millisecondsSinceEpoch}'),
                 points: points,
-                color: color,
+                color: const Color.fromRGBO(
+                    255, 0, 0, 0.8), // Red with 80% opacity
                 width: 3,
               ),
             );
@@ -397,11 +372,9 @@ class _MapScreenState extends State<MapScreen> {
               CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
           center: points[i],
           radius: 5, // Small radius for subtle visualization
-          fillColor: i == 0 || i == points.length - 1
-              ? Color.fromRGBO(0, 255, 0, 0.7) // Start/end point in green
-              : Color.fromRGBO(0, 0, 255, 0.7), // Other points in blue
-          strokeColor:
-              i == 0 || i == points.length - 1 ? Colors.green : Colors.blue,
+          fillColor:
+              const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
+          strokeColor: Colors.red,
           strokeWidth: 1,
         ),
       );
@@ -413,7 +386,7 @@ class _MapScreenState extends State<MapScreen> {
           polylineId:
               PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
           points: points,
-          color: color,
+          color: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
           width: 3,
         ),
       );
