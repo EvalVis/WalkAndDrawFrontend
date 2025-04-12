@@ -38,6 +38,7 @@ class _MapScreenState extends State<MapScreen> {
   Position? _currentPosition;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  Set<Circle> _circles = {};
   GenerativeModel? _model;
   bool _isLoading = false;
 
@@ -218,6 +219,28 @@ class _MapScreenState extends State<MapScreen> {
             random.nextInt(256),
           );
 
+          // Clear previous circles
+          _circles.clear();
+
+          // Add circles for each point
+          for (var i = 0; i < points.length; i++) {
+            _circles.add(
+              Circle(
+                circleId: CircleId(
+                    'point_${DateTime.now().millisecondsSinceEpoch}_$i'),
+                center: points[i],
+                radius: 5, // Small radius for subtle visualization
+                fillColor: i == 0 || i == points.length - 1
+                    ? Color.fromRGBO(0, 255, 0, 0.7) // Start/end point in green
+                    : Color.fromRGBO(0, 0, 255, 0.7), // Other points in blue
+                strokeColor: i == 0 || i == points.length - 1
+                    ? Colors.green
+                    : Colors.blue,
+                strokeWidth: 1,
+              ),
+            );
+          }
+
           setState(() {
             _polylines.add(
               Polyline(
@@ -361,6 +384,27 @@ class _MapScreenState extends State<MapScreen> {
       random.nextInt(256),
     );
 
+    // Clear previous circles
+    _circles.clear();
+
+    // Add circles for each point
+    for (var i = 0; i < points.length; i++) {
+      _circles.add(
+        Circle(
+          circleId:
+              CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
+          center: points[i],
+          radius: 5, // Small radius for subtle visualization
+          fillColor: i == 0 || i == points.length - 1
+              ? Color.fromRGBO(0, 255, 0, 0.7) // Start/end point in green
+              : Color.fromRGBO(0, 0, 255, 0.7), // Other points in blue
+          strokeColor:
+              i == 0 || i == points.length - 1 ? Colors.green : Colors.blue,
+          strokeWidth: 1,
+        ),
+      );
+    }
+
     setState(() {
       _polylines.add(
         Polyline(
@@ -417,6 +461,7 @@ class _MapScreenState extends State<MapScreen> {
         myLocationButtonEnabled: _locationPermissionGranted,
         markers: _markers,
         polylines: _polylines,
+        circles: _circles,
       ),
     );
   }
