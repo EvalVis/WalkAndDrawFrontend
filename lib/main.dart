@@ -151,7 +151,7 @@ class _MapScreenState extends State<MapScreen> {
 2. Last point must be the same as the first point.
 3. Each point should be within 100 meters of the previous point to ensure smooth lines.
 4. Total path distance (summed distance between all points) must not exceed 20 kilometers.
-5. Generate between 20-40 points to create a recognizable drawing.
+5. Generate between 40-60 points to create a recognizable drawing.
 6. Think of a simple shape or object (like a heart, star, or animal or an object) and create coordinates that will draw it on the map.
 7. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
