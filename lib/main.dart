@@ -597,7 +597,18 @@ Return ONLY the suggestion without any additional text or formatting.''';
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Walk and Draw'),
+        centerTitle: false,
         actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                widget.credentials.user.name ?? 'User',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: widget.onLogout,
