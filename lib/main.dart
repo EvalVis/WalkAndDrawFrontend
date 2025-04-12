@@ -206,16 +206,19 @@ class _MapScreenState extends State<MapScreen> {
 
     setState(() {
       // Clear only current drawing elements
-      _polylines.removeWhere((polyline) => polyline.polylineId.value.startsWith('current_'));
-      _circles.removeWhere((circle) => circle.circleId.value.startsWith('current_'));
-      
+      _polylines.removeWhere(
+          (polyline) => polyline.polylineId.value.startsWith('current_'));
+      _circles.removeWhere(
+          (circle) => circle.circleId.value.startsWith('current_'));
+
       // Add current drawing if there are points
       if (!isCompleted && points.isNotEmpty) {
         // Add circles for current points
         for (var i = 0; i < points.length; i++) {
           _circles.add(
             Circle(
-              circleId: CircleId('current_${DateTime.now().millisecondsSinceEpoch}_$i'),
+              circleId: CircleId(
+                  'current_${DateTime.now().millisecondsSinceEpoch}_$i'),
               center: points[i],
               radius: 5,
               fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
@@ -228,7 +231,8 @@ class _MapScreenState extends State<MapScreen> {
         // Add polyline for current drawing
         _polylines.add(
           Polyline(
-            polylineId: PolylineId('current_${DateTime.now().millisecondsSinceEpoch}'),
+            polylineId:
+                PolylineId('current_${DateTime.now().millisecondsSinceEpoch}'),
             points: points,
             color: const Color.fromRGBO(255, 0, 0, 0.8),
             width: 3,
@@ -242,7 +246,8 @@ class _MapScreenState extends State<MapScreen> {
         for (var i = 0; i < drawing.length; i++) {
           _circles.add(
             Circle(
-              circleId: CircleId('completed_${DateTime.now().millisecondsSinceEpoch}_$i'),
+              circleId: CircleId(
+                  'completed_${DateTime.now().millisecondsSinceEpoch}_$i'),
               center: drawing[i],
               radius: 5,
               fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
@@ -255,7 +260,8 @@ class _MapScreenState extends State<MapScreen> {
         // Add polyline for completed drawing
         _polylines.add(
           Polyline(
-            polylineId: PolylineId('completed_${DateTime.now().millisecondsSinceEpoch}'),
+            polylineId: PolylineId(
+                'completed_${DateTime.now().millisecondsSinceEpoch}'),
             points: drawing,
             color: const Color.fromRGBO(255, 0, 0, 0.8),
             width: 3,
@@ -561,7 +567,8 @@ Return ONLY the suggestion without any additional text or formatting.''';
       if (_isManualDrawing) {
         setState(() {
           final newPoint = LatLng(position.latitude, position.longitude);
-          if (_currentDrawingPoints.isEmpty || newPoint != _currentDrawingPoints.last) {
+          if (_currentDrawingPoints.isEmpty ||
+              newPoint != _currentDrawingPoints.last) {
             _currentDrawingPoints.add(newPoint);
             _addPointsToMap(_currentDrawingPoints);
           }
@@ -590,7 +597,6 @@ Return ONLY the suggestion without any additional text or formatting.''';
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Walk and Draw'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
