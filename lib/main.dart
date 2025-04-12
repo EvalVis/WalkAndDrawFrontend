@@ -176,14 +176,6 @@ class _MapScreenState extends State<MapScreen> {
 
           print('Attempting to parse JSON response: $jsonResponse');
 
-          // Check if our response handling truncated the JSON
-          if (!jsonResponse.endsWith(']')) {
-            print(
-                'Warning: Response appears to be truncated in our handling. Falling back to random drawing.');
-            _createSampleDrawing();
-            return;
-          }
-
           final List<dynamic> coordinates = json.decode(jsonResponse);
           final points = <LatLng>[];
           double totalDistance = 0;
