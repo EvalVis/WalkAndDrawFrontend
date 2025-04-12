@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
+import 'dart:async';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,6 +111,10 @@ class _MapScreenState extends State<MapScreen> {
   bool _isLoading = false;
   bool _isDrawingVisible = true;
   bool _isGettingSuggestion = false;
+  bool _isManualDrawing = false;
+  List<LatLng> _currentDrawingPoints = [];
+  Set<List<LatLng>> _completedDrawings = {};
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -120,6 +125,12 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _checkLocationPermission();
     _initializeGemini();
+  }
+
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _initializeGemini() async {
@@ -188,37 +199,69 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _addPointsToMap(List<LatLng> points) {
-    // Clear previous circles
-    _circles.clear();
-
-    // Add circles for each point
-    for (var i = 0; i < points.length; i++) {
-      _circles.add(
-        Circle(
-          circleId:
-              CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
-          center: points[i],
-          radius: 5, // Small radius for subtle visualization
-          fillColor:
-              const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
-          strokeColor: Colors.red,
-          strokeWidth: 1,
-        ),
-      );
+  void _addPointsToMap(List<LatLng> points, {bool isCompleted = false}) {
+    if (isCompleted) {
+      _completedDrawings.add(List.from(points));
     }
 
     setState(() {
-      _polylines.add(
-        Polyline(
-          polylineId:
-              PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
-          points: points,
-          color: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
-          width: 3,
-        ),
-      );
-      _isDrawingVisible = true;
+      // Clear only current drawing elements
+      _polylines.removeWhere((polyline) => polyline.polylineId.value.startsWith('current_'));
+      _circles.removeWhere((circle) => circle.circleId.value.startsWith('current_'));
+      
+      // Add current drawing if there are points
+      if (!isCompleted && points.isNotEmpty) {
+        // Add circles for current points
+        for (var i = 0; i < points.length; i++) {
+          _circles.add(
+            Circle(
+              circleId: CircleId('current_${DateTime.now().millisecondsSinceEpoch}_$i'),
+              center: points[i],
+              radius: 5,
+              fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
+              strokeColor: Colors.red,
+              strokeWidth: 1,
+            ),
+          );
+        }
+
+        // Add polyline for current drawing
+        _polylines.add(
+          Polyline(
+            polylineId: PolylineId('current_${DateTime.now().millisecondsSinceEpoch}'),
+            points: points,
+            color: const Color.fromRGBO(255, 0, 0, 0.8),
+            width: 3,
+          ),
+        );
+      }
+
+      // Always show completed drawings
+      for (var drawing in _completedDrawings) {
+        // Add circles for completed drawing points
+        for (var i = 0; i < drawing.length; i++) {
+          _circles.add(
+            Circle(
+              circleId: CircleId('completed_${DateTime.now().millisecondsSinceEpoch}_$i'),
+              center: drawing[i],
+              radius: 5,
+              fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
+              strokeColor: Colors.red,
+              strokeWidth: 1,
+            ),
+          );
+        }
+
+        // Add polyline for completed drawing
+        _polylines.add(
+          Polyline(
+            polylineId: PolylineId('completed_${DateTime.now().millisecondsSinceEpoch}'),
+            points: drawing,
+            color: const Color.fromRGBO(255, 0, 0, 0.8),
+            width: 3,
+          ),
+        );
+      }
     });
   }
 
@@ -497,6 +540,48 @@ Return ONLY the suggestion without any additional text or formatting.''';
     }
   }
 
+  void _startDrawing() {
+    // If there's a current drawing, save it as completed
+    if (_currentDrawingPoints.isNotEmpty) {
+      _addPointsToMap(_currentDrawingPoints, isCompleted: true);
+    }
+
+    setState(() {
+      _isManualDrawing = true;
+      _currentDrawingPoints = [];
+    });
+
+    // Start listening to location updates
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5, // Update every 5 meters
+      ),
+    ).listen((Position position) {
+      if (_isManualDrawing) {
+        setState(() {
+          final newPoint = LatLng(position.latitude, position.longitude);
+          if (_currentDrawingPoints.isEmpty || newPoint != _currentDrawingPoints.last) {
+            _currentDrawingPoints.add(newPoint);
+            _addPointsToMap(_currentDrawingPoints);
+          }
+        });
+      }
+    });
+  }
+
+  void _stopDrawing() {
+    _positionStreamSubscription?.cancel();
+    setState(() {
+      _isManualDrawing = false;
+      if (_currentDrawingPoints.isNotEmpty) {
+        // Save the current drawing as completed without connecting back to start
+        _addPointsToMap(_currentDrawingPoints, isCompleted: true);
+        _currentDrawingPoints = [];
+      }
+    });
+  }
+
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
@@ -510,6 +595,14 @@ Return ONLY the suggestion without any additional text or formatting.''';
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: widget.onLogout,
+          ),
+          ElevatedButton(
+            onPressed: _isManualDrawing ? _stopDrawing : _startDrawing,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isManualDrawing ? Colors.red : Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(_isManualDrawing ? 'Stop Drawing' : 'Start Drawing'),
           ),
           Center(
             child: Padding(
