@@ -121,10 +121,40 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  void _addPointsToMap(List<LatLng> points) {
+    // Clear previous circles
+    _circles.clear();
+
+    // Add circles for each point
+    for (var i = 0; i < points.length; i++) {
+      _circles.add(
+        Circle(
+          circleId: CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
+          center: points[i],
+          radius: 5, // Small radius for subtle visualization
+          fillColor: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
+          strokeColor: Colors.red,
+          strokeWidth: 1,
+        ),
+      );
+    }
+
+    setState(() {
+      _polylines.add(
+        Polyline(
+          polylineId: PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
+          points: points,
+          color: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
+          width: 3,
+        ),
+      );
+      _isDrawingVisible = true;
+    });
+  }
+
   Future<void> _requestDrawingSuggestion() async {
     if (_model == null || _currentPosition == null) {
-      print(
-          'Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
+      print('Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
       return;
     }
 
@@ -178,8 +208,7 @@ class _MapScreenState extends State<MapScreen> {
           // Parse each coordinate and create LatLng points
           for (var i = 0; i < coordinates.length; i++) {
             final coord = coordinates[i];
-            final point =
-                LatLng(coord['lat'].toDouble(), coord['lng'].toDouble());
+            final point = LatLng(coord['lat'].toDouble(), coord['lng'].toDouble());
             points.add(point);
 
             // Calculate distance between consecutive points
@@ -197,38 +226,7 @@ class _MapScreenState extends State<MapScreen> {
           print('Total path distance: ${totalDistance / 1000} kilometers');
           print('Number of points: ${points.length}');
 
-          // Clear previous circles
-          _circles.clear();
-
-          // Add circles for each point
-          for (var i = 0; i < points.length; i++) {
-            _circles.add(
-              Circle(
-                circleId: CircleId(
-                    'point_${DateTime.now().millisecondsSinceEpoch}_$i'),
-                center: points[i],
-                radius: 5, // Small radius for subtle visualization
-                fillColor: const Color.fromRGBO(
-                    255, 0, 0, 0.8), // Red with 80% opacity
-                strokeColor: Colors.red,
-                strokeWidth: 1,
-              ),
-            );
-          }
-
-          setState(() {
-            _polylines.add(
-              Polyline(
-                polylineId: PolylineId(
-                    'drawing_${DateTime.now().millisecondsSinceEpoch}'),
-                points: points,
-                color: const Color.fromRGBO(
-                    255, 0, 0, 0.8), // Red with 80% opacity
-                width: 3,
-              ),
-            );
-            _isDrawingVisible = true;
-          });
+          _addPointsToMap(points);
         } catch (e) {
           print('Error parsing Gemini response: $e');
           print('Falling back to sample drawing due to parsing error');
@@ -254,13 +252,11 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentPosition == null) return;
 
     final random = math.Random();
-    final numPoints =
-        random.nextInt(81) + 20; // Random between 20 and 100 points
+    final numPoints = random.nextInt(81) + 20; // Random between 20 and 100 points
     final points = <LatLng>[];
 
     // Start from current location
-    final startPoint =
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    final startPoint = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     points.add(startPoint);
 
     double totalDistance = 0;
@@ -353,45 +349,7 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    // Generate random color
-    final color = Color.fromARGB(
-      255,
-      random.nextInt(256),
-      random.nextInt(256),
-      random.nextInt(256),
-    );
-
-    // Clear previous circles
-    _circles.clear();
-
-    // Add circles for each point
-    for (var i = 0; i < points.length; i++) {
-      _circles.add(
-        Circle(
-          circleId:
-              CircleId('point_${DateTime.now().millisecondsSinceEpoch}_$i'),
-          center: points[i],
-          radius: 5, // Small radius for subtle visualization
-          fillColor:
-              const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
-          strokeColor: Colors.red,
-          strokeWidth: 1,
-        ),
-      );
-    }
-
-    setState(() {
-      _polylines.add(
-        Polyline(
-          polylineId:
-              PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
-          points: points,
-          color: const Color.fromRGBO(255, 0, 0, 0.8), // Red with 80% opacity
-          width: 3,
-        ),
-      );
-      _isDrawingVisible = true;
-    });
+    _addPointsToMap(points);
   }
 
   // Add new method for getting drawing suggestions
