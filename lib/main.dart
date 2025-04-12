@@ -145,10 +145,13 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       final prompt =
-          '''Starting from my current location at (${_currentPosition!.latitude}, ${_currentPosition!.longitude}), provide coordinates for a simple drawing on a map. Requirements:
-1. First coordinate MUST be (${_currentPosition!.latitude}, ${_currentPosition!.longitude})
-2. Total walking distance must not exceed 20 kilometers
-3. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
+          '''Given coordinates (${_currentPosition!.latitude}, ${_currentPosition!.longitude}), provide more coordinates (points). Requirements:
+1. First point must be (${_currentPosition!.latitude}, ${_currentPosition!.longitude}).
+2. Distance between each point must not exceed 100 meters.
+3. Total distance accounting all points must not exceed 20 kilometers. Keep in mind that distance between last point and first point must be included in the total distance.
+4. Generate at least 20 points up to 200 points.
+5. Then providing coordinates think about some drawing (an animal, an object etc.) since your coordinates will be used to draw that.
+6. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
       print('Sending prompt to Gemini: $prompt');
       final content = [Content.text(prompt)];
