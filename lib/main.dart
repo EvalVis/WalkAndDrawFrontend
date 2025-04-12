@@ -130,7 +130,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _requestDrawingSuggestion() async {
-    if (_model == null || _currentPosition == null) return;
+    if (_model == null || _currentPosition == null) {
+      print('Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -143,16 +146,40 @@ class _MapScreenState extends State<MapScreen> {
 2. Total walking distance must not exceed 20 kilometers
 3. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
+      print('Sending prompt to Gemini: $prompt');
       final content = [Content.text(prompt)];
       final response = await _model!.generateContent(content);
 
+      print('Gemini response received:');
+      print('Response text: ${response.text}');
+      if (response.promptFeedback != null) {
+        print('Prompt feedback: ${response.promptFeedback}');
+      }
+
       if (response.text != null) {
-        // TODO: Parse the JSON response and create polylines
-        // For now, let's create a sample heart shape
+        try {
+          // Try to parse the JSON response
+          final jsonResponse = response.text!.trim();
+          print('Attempting to parse JSON response: $jsonResponse');
+          
+          // TODO: Parse the JSON response and create polylines
+          // For now, fallback to sample drawing
+          print('Falling back to sample drawing as JSON parsing is not implemented yet');
+          _createSampleDrawing();
+        } catch (e) {
+          print('Error parsing Gemini response: $e');
+          print('Falling back to sample drawing due to parsing error');
+          _createSampleDrawing();
+        }
+      } else {
+        print('Gemini response text is null, falling back to sample drawing');
         _createSampleDrawing();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error getting drawing suggestion: $e');
+      print('Stack trace: $stackTrace');
+      print('Falling back to sample drawing due to error');
+      _createSampleDrawing();
     } finally {
       setState(() {
         _isLoading = false;
@@ -164,43 +191,59 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentPosition == null) return;
 
     final random = math.Random();
-    final numPoints =
-        random.nextInt(81) + 20; // Random between 20 and 100 points
+    final numPoints = random.nextInt(81) + 20; // Random between 20 and 100 points
     final points = <LatLng>[];
-
+    
     // Start from current location
-    points.add(LatLng(_currentPosition!.latitude, _currentPosition!.longitude));
-
+    final startPoint = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    points.add(startPoint);
+    
     double totalDistance = 0;
     final maxDistance = 20000; // 20 kilometers in meters
+    final maxStepDistance = 200.0; // Maximum 200m per step
 
-    for (int i = 1; i < numPoints && totalDistance < maxDistance; i++) {
+    for (int i = 1; i < numPoints; i++) {
       final lastPoint = points.last;
+      
+      // Calculate distance to start point
+      final distanceToStart = Geolocator.distanceBetween(
+        lastPoint.latitude,
+        lastPoint.longitude,
+        startPoint.latitude,
+        startPoint.longitude,
+      );
+
+      // If adding another point would make it impossible to return to start within limit
+      if (totalDistance + distanceToStart >= maxDistance) {
+        // Add the start point to close the path
+        points.add(startPoint);
+        break;
+      }
 
       // Generate random angle and distance
       final angle = random.nextDouble() * 2 * math.pi;
-      final maxStepDistance = (maxDistance - totalDistance) / (numPoints - i);
-      final stepDistance = random.nextDouble() *
-          math.min(300, maxStepDistance); // Max 300m per step
-
+      final stepDistance = random.nextDouble() * maxStepDistance;
+      
       // Calculate new point using haversine formula
       final R = 6371000; // Earth's radius in meters
       final lat1 = lastPoint.latitude * math.pi / 180;
       final lng1 = lastPoint.longitude * math.pi / 180;
-
-      final lat2 = math.asin(math.sin(lat1) * math.cos(stepDistance / R) +
-          math.cos(lat1) * math.sin(stepDistance / R) * math.cos(angle));
-
-      final lng2 = lng1 +
-          math.atan2(
-              math.sin(angle) * math.sin(stepDistance / R) * math.cos(lat1),
-              math.cos(stepDistance / R) - math.sin(lat1) * math.sin(lat2));
+      
+      final lat2 = math.asin(
+        math.sin(lat1) * math.cos(stepDistance / R) +
+        math.cos(lat1) * math.sin(stepDistance / R) * math.cos(angle)
+      );
+      
+      final lng2 = lng1 + math.atan2(
+        math.sin(angle) * math.sin(stepDistance / R) * math.cos(lat1),
+        math.cos(stepDistance / R) - math.sin(lat1) * math.sin(lat2)
+      );
 
       final newPoint = LatLng(
         lat2 * 180 / math.pi,
         lng2 * 180 / math.pi,
       );
-
+      
       // Calculate actual distance to new point
       final distanceToNew = Geolocator.distanceBetween(
         lastPoint.latitude,
@@ -209,9 +252,41 @@ class _MapScreenState extends State<MapScreen> {
         newPoint.longitude,
       );
 
-      totalDistance += distanceToNew;
-      if (totalDistance <= maxDistance) {
+      // Calculate distance from new point to start
+      final newPointToStart = Geolocator.distanceBetween(
+        newPoint.latitude,
+        newPoint.longitude,
+        startPoint.latitude,
+        startPoint.longitude,
+      );
+      
+      // Only add the point if:
+      // 1. The step distance is within our limit
+      // 2. Adding this point and returning to start won't exceed max distance
+      if (distanceToNew <= maxStepDistance && 
+          totalDistance + distanceToNew + newPointToStart <= maxDistance) {
         points.add(newPoint);
+        totalDistance += distanceToNew;
+      } else {
+        // If we can't add this point, try to connect back to start
+        if (totalDistance + distanceToStart <= maxDistance) {
+          points.add(startPoint);
+        }
+        break;
+      }
+    }
+
+    // If we haven't connected back to start yet and we can do it within the limit
+    if (points.last != startPoint) {
+      final finalDistanceToStart = Geolocator.distanceBetween(
+        points.last.latitude,
+        points.last.longitude,
+        startPoint.latitude,
+        startPoint.longitude,
+      );
+      
+      if (totalDistance + finalDistanceToStart <= maxDistance) {
+        points.add(startPoint);
       }
     }
 
@@ -226,8 +301,7 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _polylines.add(
         Polyline(
-          polylineId:
-              PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
+          polylineId: PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
           points: points,
           color: color,
           width: 3,
