@@ -40,7 +40,8 @@ class _MapScreenState extends State<MapScreen> {
   GenerativeModel? _model;
   bool _isLoading = false;
 
-  final LatLng _center = const LatLng(-34.0, 151.0);
+  // Default center (will be updated when we get current location)
+  final LatLng _defaultCenter = const LatLng(54.687157, 25.279652); // Vilnius coordinates
 
   @override
   void initState() {
@@ -101,15 +102,14 @@ class _MapScreenState extends State<MapScreen> {
 
   void _updateCurrentLocationMarker() {
     if (_currentPosition == null) return;
-
+    
+    final latLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    
     setState(() {
       _markers = {
         Marker(
           markerId: const MarkerId('current_location'),
-          position: LatLng(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-          ),
+          position: latLng,
           infoWindow: const InfoWindow(
             title: 'Current Location',
             snippet: 'You are here',
@@ -117,6 +117,16 @@ class _MapScreenState extends State<MapScreen> {
         ),
       };
     });
+
+    // Move camera to current location
+    mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: latLng,
+          zoom: 15.0,
+        ),
+      ),
+    );
   }
 
   Future<void> _requestDrawingSuggestion() async {
@@ -261,11 +271,8 @@ class _MapScreenState extends State<MapScreen> {
         onMapCreated: _onMapCreated,
         initialCameraPosition: CameraPosition(
           target: _currentPosition != null
-              ? LatLng(
-                  _currentPosition!.latitude,
-                  _currentPosition!.longitude,
-                )
-              : _center,
+              ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+              : _defaultCenter,
           zoom: 15.0,
         ),
         myLocationEnabled: _locationPermissionGranted,
