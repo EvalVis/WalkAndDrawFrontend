@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'leaderboard_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,12 +26,39 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   Credentials? _credentials;
   late Auth0 auth0;
+  mongo.Db? _mongodb;
 
   @override
   void initState() {
     super.initState();
     auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com',
         'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
+    _initializeMongoDB();
+  }
+
+  Future<void> _initializeMongoDB() async {
+    try {
+      final username =
+          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
+              .invokeMethod<String>('getMongoDBUsername');
+      final password =
+          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
+              .invokeMethod<String>('getMongoDBPassword');
+      if (username != null &&
+          password != null &&
+          username.isNotEmpty &&
+          password.isNotEmpty) {
+        final connectionString =
+            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/Distances?retryWrites=true&w=majority&appName=WalkAndDraw';
+        _mongodb = await mongo.Db.create(connectionString);
+        await _mongodb!.open();
+        print('MongoDB connected successfully to Distances database');
+      } else {
+        print('MongoDB credentials not found');
+      }
+    } catch (e) {
+      print('Error connecting to MongoDB: $e');
+    }
   }
 
   @override
@@ -40,9 +68,10 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(primarySwatch: Colors.blue),
       home: _credentials == null
           ? _buildLoginScreen()
-          : MapScreen(
+          : MainApp(
               credentials: _credentials!,
               onLogout: _handleLogout,
+              mongodb: _mongodb,
             ),
     );
   }
@@ -90,11 +119,13 @@ class _MyAppState extends State<MyApp> {
 class MapScreen extends StatefulWidget {
   final Credentials credentials;
   final VoidCallback onLogout;
+  final mongo.Db? mongodb;
 
   const MapScreen({
     super.key,
     required this.credentials,
     required this.onLogout,
+    this.mongodb,
   });
 
   @override
@@ -118,7 +149,6 @@ class _MapScreenState extends State<MapScreen> {
   List<LatLng> _currentDrawingPoints = [];
   Set<List<LatLng>> _completedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
-  mongo.Db? _mongodb;
   Timer? _distanceUpdateTimer;
 
   // Default center (will be updated when we get current location)
@@ -130,14 +160,12 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _checkLocationPermission();
     _initializeGemini();
-    _initializeMongoDB();
   }
 
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
     _distanceUpdateTimer?.cancel();
-    _mongodb?.close();
     super.dispose();
   }
 
@@ -205,93 +233,6 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _initializeMongoDB() async {
-    try {
-      final username =
-          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
-              .invokeMethod<String>('getMongoDBUsername');
-      final password =
-          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
-              .invokeMethod<String>('getMongoDBPassword');
-      if (username != null &&
-          password != null &&
-          username.isNotEmpty &&
-          password.isNotEmpty) {
-        final connectionString =
-            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/Distances?retryWrites=true&w=majority&appName=WalkAndDraw';
-        _mongodb = await mongo.Db.create(connectionString);
-        await _mongodb!.open();
-        print('MongoDB connected successfully to Distances database');
-
-        // Load initial distance
-        await _loadInitialDistance();
-
-        // Start periodic updates
-        _startDistanceUpdates();
-      } else {
-        print('MongoDB credentials not found');
-      }
-    } catch (e) {
-      print('Error connecting to MongoDB: $e');
-    }
-  }
-
-  Future<void> _loadInitialDistance() async {
-    if (_mongodb == null) return;
-
-    try {
-      final collection = _mongodb!.collection('Ink');
-      final userEmail = widget.credentials.user.email;
-
-      if (userEmail != null) {
-        final result =
-            await collection.findOne(mongo.where.eq('email', userEmail));
-        if (result != null) {
-          setState(() {
-            _totalDistance = (result['distance'] as num).toDouble();
-          });
-          print(
-              'Loaded initial distance: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
-        } else {
-          // Create new entry if user doesn't exist
-          await collection.insert({
-            'email': userEmail,
-            'username': widget.credentials.user.name ?? 'User',
-            'distance': 0.0
-          });
-          print('Created new user entry in MongoDB');
-        }
-      }
-    } catch (e) {
-      print('Error loading initial distance: $e');
-    }
-  }
-
-  void _startDistanceUpdates() {
-    // Update distance every 15 seconds
-    _distanceUpdateTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      _updateDistanceInMongoDB();
-    });
-  }
-
-  Future<void> _updateDistanceInMongoDB() async {
-    if (_mongodb == null) return;
-
-    try {
-      final collection = _mongodb!.collection('Ink');
-      final userEmail = widget.credentials.user.email;
-
-      if (userEmail != null) {
-        await collection.update(mongo.where.eq('email', userEmail),
-            mongo.modify.set('distance', _totalDistance));
-        print(
-            'Updated distance in MongoDB: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
-      }
-    } catch (e) {
-      print('Error updating distance in MongoDB: $e');
-    }
   }
 
   void _addPointsToMap(List<LatLng> points, {bool isCompleted = false}) {
@@ -831,6 +772,63 @@ Return ONLY the suggestion without any additional text or formatting.''';
             markers: _markers,
             polylines: _isDrawingVisible ? _polylines : {},
             circles: _isDrawingVisible ? _circles : {},
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MainApp extends StatefulWidget {
+  final Credentials credentials;
+  final VoidCallback onLogout;
+  final mongo.Db? mongodb;
+
+  const MainApp({
+    super.key,
+    required this.credentials,
+    required this.onLogout,
+    this.mongodb,
+  });
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          MapScreen(
+            credentials: widget.credentials,
+            onLogout: widget.onLogout,
+            mongodb: widget.mongodb,
+          ),
+          LeaderboardScreen(
+            mongodb: widget.mongodb,
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.leaderboard),
+            label: 'Leaderboard',
           ),
         ],
       ),
