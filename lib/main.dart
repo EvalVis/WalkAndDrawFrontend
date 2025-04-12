@@ -509,7 +509,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
                 icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
                 itemBuilder: (context) => [
                   PopupMenuItem(
-                    value: 'what_to_draw',
+                    value: 'drawing_suggestion',
                     child: Row(
                       children: [
                         if (_isGettingSuggestion)
@@ -525,12 +525,12 @@ Return ONLY the suggestion without any additional text or formatting.''';
                               ),
                             ),
                           ),
-                        const Text('Suggest what to draw'),
+                        const Text('Suggest drawing'),
                       ],
                     ),
                   ),
                   PopupMenuItem(
-                    value: 'suggest',
+                    value: 'ai_draw',
                     child: Row(
                       children: [
                         if (_isLoading)
@@ -546,7 +546,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
                               ),
                             ),
                           ),
-                        Text(_isLoading ? 'Generating...' : 'Suggest Drawing'),
+                        Text(_isLoading ? 'Generating...' : 'AI Drawing'),
                       ],
                     ),
                   ),
@@ -575,9 +575,10 @@ Return ONLY the suggestion without any additional text or formatting.''';
                     setState(() {
                       _isDrawingVisible = !_isDrawingVisible;
                     });
-                  } else if (value == 'suggest' && !_isLoading) {
+                  } else if (value == 'ai_draw' && !_isLoading) {
                     _requestDrawingSuggestion();
-                  } else if (value == 'what_to_draw' && !_isGettingSuggestion) {
+                  } else if (value == 'drawing_suggestion' &&
+                      !_isGettingSuggestion) {
                     _getDrawingSuggestion();
                   }
                 },
