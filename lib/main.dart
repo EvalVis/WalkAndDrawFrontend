@@ -32,6 +32,7 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   bool _locationPermissionGranted = false;
   Position? _currentPosition;
+  Set<Marker> _markers = {};
 
   final LatLng _center = const LatLng(-34.0, 151.0);
 
@@ -69,6 +70,23 @@ class _MapScreenState extends State<MapScreen> {
     // Get current position
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
+      
+      // Add marker at current position
+      setState(() {
+        _markers = {
+          Marker(
+            markerId: const MarkerId('current_location'),
+            position: LatLng(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+            ),
+            infoWindow: const InfoWindow(
+              title: 'Current Location',
+              snippet: 'You are here',
+            ),
+          ),
+        };
+      });
     } catch (e) {
       // Ignore position error as the app can still work with default location
     }
@@ -93,20 +111,11 @@ class _MapScreenState extends State<MapScreen> {
                   _currentPosition!.longitude,
                 )
               : _center,
-          zoom: 11.0,
+          zoom: 15.0,
         ),
         myLocationEnabled: _locationPermissionGranted,
         myLocationButtonEnabled: _locationPermissionGranted,
-        markers: {
-          Marker(
-            markerId: const MarkerId('sydney'),
-            position: _center,
-            infoWindow: const InfoWindow(
-              title: 'Sydney',
-              snippet: 'Australia',
-            ),
-          ),
-        },
+        markers: _markers,
       ),
     );
   }
