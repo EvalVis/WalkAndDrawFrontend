@@ -150,7 +150,7 @@ class _MapScreenState extends State<MapScreen> {
 2. Last point must be the same as the first point.
 3. Each point should be within 100 meters of the previous point to ensure smooth lines.
 4. Total path distance (summed distance between all points) must not exceed 20 kilometers.
-5. Generate between 20-200 points to create a recognizable drawing.
+5. Generate between 20-40 points to create a recognizable drawing.
 6. Think of a simple shape or object (like a heart, star, or animal or an object) and create coordinates that will draw it on the map.
 7. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
@@ -172,7 +172,16 @@ class _MapScreenState extends State<MapScreen> {
               .replaceAll('```json', '') // Remove markdown code block start
               .replaceAll('```', '') // Remove markdown code block end
               .trim(); // Remove any extra whitespace
+
           print('Attempting to parse JSON response: $jsonResponse');
+
+          // Check if our response handling truncated the JSON
+          if (!jsonResponse.endsWith(']')) {
+            print(
+                'Warning: Response appears to be truncated in our handling. Falling back to random drawing.');
+            _createSampleDrawing();
+            return;
+          }
 
           final List<dynamic> coordinates = json.decode(jsonResponse);
           final points = <LatLng>[];
@@ -198,6 +207,7 @@ class _MapScreenState extends State<MapScreen> {
           }
 
           print('Total path distance: ${totalDistance / 1000} kilometers');
+          print('Number of points: ${points.length}');
 
           // Generate random color for the polyline
           final random = math.Random();
