@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, exit;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Debug: Print the API key from environment
-  final apiKey = Platform.environment['GOOGLE_MAPS_API_KEY'];
-  debugPrint('API Key from environment: ${apiKey ?? 'Not found'}');
-
   runApp(const MyApp());
 }
 
@@ -42,7 +38,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('MapScreen initialized');
     _checkLocationPermission();
   }
 
@@ -52,7 +47,6 @@ class _MapScreenState extends State<MapScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      debugPrint('Location services are disabled.');
       return;
     }
 
@@ -60,13 +54,11 @@ class _MapScreenState extends State<MapScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        debugPrint('Location permissions are denied');
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      debugPrint('Location permissions are permanently denied');
       return;
     }
 
@@ -77,34 +69,30 @@ class _MapScreenState extends State<MapScreen> {
     // Get current position
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
-      debugPrint(
-        'Current position: ${_currentPosition?.latitude}, ${_currentPosition?.longitude}',
-      );
     } catch (e) {
-      debugPrint('Error getting current position: $e');
+      // Ignore position error as the app can still work with default location
     }
   }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
-    debugPrint('Map controller created successfully');
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Building MapScreen');
     return Scaffold(
-      appBar: AppBar(title: const Text('Walk and Draw')),
+      appBar: AppBar(
+        title: const Text('Walk and Draw'),
+      ),
       body: GoogleMap(
         onMapCreated: _onMapCreated,
         initialCameraPosition: CameraPosition(
-          target:
-              _currentPosition != null
-                  ? LatLng(
-                    _currentPosition!.latitude,
-                    _currentPosition!.longitude,
-                  )
-                  : _center,
+          target: _currentPosition != null
+              ? LatLng(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                )
+              : _center,
           zoom: 11.0,
         ),
         myLocationEnabled: _locationPermissionGranted,
@@ -113,7 +101,10 @@ class _MapScreenState extends State<MapScreen> {
           Marker(
             markerId: const MarkerId('sydney'),
             position: _center,
-            infoWindow: const InfoWindow(title: 'Sydney', snippet: 'Australia'),
+            infoWindow: const InfoWindow(
+              title: 'Sydney',
+              snippet: 'Australia',
+            ),
           ),
         },
       ),
