@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,6 +118,7 @@ class _MapScreenState extends State<MapScreen> {
   List<LatLng> _currentDrawingPoints = [];
   Set<List<LatLng>> _completedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
+  mongo.Db? _mongodb;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -127,11 +129,13 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _checkLocationPermission();
     _initializeGemini();
+    _initializeMongoDB();
   }
 
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
+    _mongodb?.close();
     super.dispose();
   }
 
@@ -199,6 +203,31 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _initializeMongoDB() async {
+    try {
+      final username =
+          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
+              .invokeMethod<String>('getMongoDBUsername');
+      final password =
+          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
+              .invokeMethod<String>('getMongoDBPassword');
+      if (username != null &&
+          password != null &&
+          username.isNotEmpty &&
+          password.isNotEmpty) {
+        final connectionString =
+            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/?retryWrites=true&w=majority&appName=WalkAndDraw';
+        _mongodb = await mongo.Db.create(connectionString);
+        await _mongodb!.open();
+        print('MongoDB connected successfully');
+      } else {
+        print('MongoDB credentials not found');
+      }
+    } catch (e) {
+      print('Error connecting to MongoDB: $e');
+    }
   }
 
   void _addPointsToMap(List<LatLng> points, {bool isCompleted = false}) {

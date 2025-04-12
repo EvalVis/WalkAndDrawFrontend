@@ -16,6 +16,14 @@ class MainActivity: FlutterActivity() {
                     val apiKey = context.getString(R.string.gemini_api_key)
                     result.success(apiKey)
                 }
+                "getMongoDBUsername" -> {
+                    val username = context.getString(R.string.mongodb_atlas_username)
+                    result.success(username)
+                }
+                "getMongoDBPassword" -> {
+                    val password = context.getString(R.string.mongodb_atlas_password)
+                    result.success(password)
+                }
                 else -> {
                     result.notImplemented()
                 }

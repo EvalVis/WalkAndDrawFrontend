@@ -14,6 +14,12 @@
         <meta-data
             android:name="com.google.ai.gemini.API_KEY"
             android:value="@string/gemini_api_key" />
+        <meta-data
+            android:name="com.mongodb.atlas.USERNAME"
+            android:value="@string/mongodb_atlas_username" />
+        <meta-data
+            android:name="com.mongodb.atlas.PASSWORD"
+            android:value="@string/mongodb_atlas_password" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
