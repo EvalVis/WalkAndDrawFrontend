@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:io' show Platform;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,7 +130,7 @@ class _MapScreenState extends State<MapScreen> {
       final prompt =
           '''Starting from my current location at (${_currentPosition!.latitude}, ${_currentPosition!.longitude}), provide coordinates for a simple drawing on a map. Requirements:
 1. First coordinate MUST be (${_currentPosition!.latitude}, ${_currentPosition!.longitude})
-2. Total walking distance must not exceed 10 kilometers
+2. Total walking distance must not exceed 20 kilometers
 3. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
       final content = [Content.text(prompt)];
@@ -152,29 +153,73 @@ class _MapScreenState extends State<MapScreen> {
   void _createSampleDrawing() {
     if (_currentPosition == null) return;
 
-    // Create a heart shape around current location
-    final center =
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
-    final scale = 0.001; // Adjust this to change the size of the drawing
+    final random = math.Random();
+    final numPoints =
+        random.nextInt(81) + 20; // Random between 20 and 100 points
+    final points = <LatLng>[];
 
-    final points = <LatLng>[
-      LatLng(center.latitude + scale, center.longitude),
-      LatLng(center.latitude + scale / 2, center.longitude + scale / 2),
-      LatLng(center.latitude, center.longitude + scale),
-      LatLng(center.latitude - scale / 2, center.longitude + scale / 2),
-      LatLng(center.latitude - scale, center.longitude),
-      LatLng(center.latitude - scale / 2, center.longitude - scale / 2),
-      LatLng(center.latitude, center.longitude - scale),
-      LatLng(center.latitude + scale / 2, center.longitude - scale / 2),
-      LatLng(center.latitude + scale, center.longitude),
-    ];
+    // Start from current location
+    points.add(LatLng(_currentPosition!.latitude, _currentPosition!.longitude));
+
+    double totalDistance = 0;
+    final maxDistance = 20000; // 20 kilometers in meters
+
+    for (int i = 1; i < numPoints && totalDistance < maxDistance; i++) {
+      final lastPoint = points.last;
+
+      // Generate random angle and distance
+      final angle = random.nextDouble() * 2 * math.pi;
+      final maxStepDistance = (maxDistance - totalDistance) / (numPoints - i);
+      final stepDistance = random.nextDouble() *
+          math.min(300, maxStepDistance); // Max 300m per step
+
+      // Calculate new point using haversine formula
+      final R = 6371000; // Earth's radius in meters
+      final lat1 = lastPoint.latitude * math.pi / 180;
+      final lng1 = lastPoint.longitude * math.pi / 180;
+
+      final lat2 = math.asin(math.sin(lat1) * math.cos(stepDistance / R) +
+          math.cos(lat1) * math.sin(stepDistance / R) * math.cos(angle));
+
+      final lng2 = lng1 +
+          math.atan2(
+              math.sin(angle) * math.sin(stepDistance / R) * math.cos(lat1),
+              math.cos(stepDistance / R) - math.sin(lat1) * math.sin(lat2));
+
+      final newPoint = LatLng(
+        lat2 * 180 / math.pi,
+        lng2 * 180 / math.pi,
+      );
+
+      // Calculate actual distance to new point
+      final distanceToNew = Geolocator.distanceBetween(
+        lastPoint.latitude,
+        lastPoint.longitude,
+        newPoint.latitude,
+        newPoint.longitude,
+      );
+
+      totalDistance += distanceToNew;
+      if (totalDistance <= maxDistance) {
+        points.add(newPoint);
+      }
+    }
+
+    // Generate random color
+    final color = Color.fromARGB(
+      255,
+      random.nextInt(256),
+      random.nextInt(256),
+      random.nextInt(256),
+    );
 
     setState(() {
       _polylines.add(
         Polyline(
-          polylineId: const PolylineId('drawing'),
+          polylineId:
+              PolylineId('drawing_${DateTime.now().millisecondsSinceEpoch}'),
           points: points,
-          color: Colors.red,
+          color: color,
           width: 3,
         ),
       );
