@@ -104,6 +104,8 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   bool _locationPermissionGranted = false;
   Position? _currentPosition;
+  Position? _lastDrawingPosition;
+  double _totalDistance = 0;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   Set<Circle> _circles = {};
@@ -552,6 +554,8 @@ Return ONLY the suggestion without any additional text or formatting.''';
       _addPointsToMap(_currentDrawingPoints, isCompleted: true);
     }
 
+    _lastDrawingPosition =
+        null; // Reset last drawing position when starting new session
     setState(() {
       _isManualDrawing = true;
       _currentDrawingPoints = [];
@@ -565,6 +569,19 @@ Return ONLY the suggestion without any additional text or formatting.''';
       ),
     ).listen((Position position) {
       if (_isManualDrawing) {
+        if (_lastDrawingPosition != null) {
+          final distance = Geolocator.distanceBetween(
+            _lastDrawingPosition!.latitude,
+            _lastDrawingPosition!.longitude,
+            position.latitude,
+            position.longitude,
+          );
+          _totalDistance += distance;
+          print(
+              'Total distance walked: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
+        }
+        _lastDrawingPosition = position;
+
         setState(() {
           final newPoint = LatLng(position.latitude, position.longitude);
           if (_currentDrawingPoints.isEmpty ||
