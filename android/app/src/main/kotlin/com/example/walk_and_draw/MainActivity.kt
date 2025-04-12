@@ -1,11 +1,11 @@
-package com.example.walk_and_draw
+package com.programmersdiary.walk_and_draw
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.walk_and_draw/config"
+    private val CHANNEL = "com.programmersdiary.walk_and_draw/config"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

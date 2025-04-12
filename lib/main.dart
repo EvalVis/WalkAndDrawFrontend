@@ -58,7 +58,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _initializeGemini() async {
     try {
       final apiKey =
-          await const MethodChannel('com.example.walk_and_draw/config')
+          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
               .invokeMethod<String>('getGeminiApiKey');
 
       if (apiKey != null && apiKey.isNotEmpty) {
