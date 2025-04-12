@@ -119,6 +119,7 @@ class _MapScreenState extends State<MapScreen> {
   Set<List<LatLng>> _completedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
   mongo.Db? _mongodb;
+  Timer? _distanceUpdateTimer;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -135,6 +136,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
+    _distanceUpdateTimer?.cancel();
     _mongodb?.close();
     super.dispose();
   }
@@ -218,15 +220,77 @@ class _MapScreenState extends State<MapScreen> {
           username.isNotEmpty &&
           password.isNotEmpty) {
         final connectionString =
-            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/?retryWrites=true&w=majority&appName=WalkAndDraw';
+            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/Distances?retryWrites=true&w=majority&appName=WalkAndDraw';
         _mongodb = await mongo.Db.create(connectionString);
         await _mongodb!.open();
-        print('MongoDB connected successfully');
+        print('MongoDB connected successfully to Distances database');
+
+        // Load initial distance
+        await _loadInitialDistance();
+
+        // Start periodic updates
+        _startDistanceUpdates();
       } else {
         print('MongoDB credentials not found');
       }
     } catch (e) {
       print('Error connecting to MongoDB: $e');
+    }
+  }
+
+  Future<void> _loadInitialDistance() async {
+    if (_mongodb == null) return;
+
+    try {
+      final collection = _mongodb!.collection('Ink');
+      final userEmail = widget.credentials.user.email;
+
+      if (userEmail != null) {
+        final result =
+            await collection.findOne(mongo.where.eq('email', userEmail));
+        if (result != null) {
+          setState(() {
+            _totalDistance = (result['distance'] as num).toDouble();
+          });
+          print(
+              'Loaded initial distance: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
+        } else {
+          // Create new entry if user doesn't exist
+          await collection.insert({
+            'email': userEmail,
+            'username': widget.credentials.user.name ?? 'User',
+            'distance': 0.0
+          });
+          print('Created new user entry in MongoDB');
+        }
+      }
+    } catch (e) {
+      print('Error loading initial distance: $e');
+    }
+  }
+
+  void _startDistanceUpdates() {
+    // Update distance every 15 seconds
+    _distanceUpdateTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _updateDistanceInMongoDB();
+    });
+  }
+
+  Future<void> _updateDistanceInMongoDB() async {
+    if (_mongodb == null) return;
+
+    try {
+      final collection = _mongodb!.collection('Ink');
+      final userEmail = widget.credentials.user.email;
+
+      if (userEmail != null) {
+        await collection.update(mongo.where.eq('email', userEmail),
+            mongo.modify.set('distance', _totalDistance));
+        print(
+            'Updated distance in MongoDB: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
+      }
+    } catch (e) {
+      print('Error updating distance in MongoDB: $e');
     }
   }
 
