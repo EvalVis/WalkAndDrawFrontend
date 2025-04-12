@@ -146,14 +146,18 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       final prompt =
-          '''Given coordinates (${_currentPosition!.latitude}, ${_currentPosition!.longitude}), create a drawing by providing a sequence of coordinates. Requirements:
+          '''Given coordinates (${_currentPosition!.latitude}, ${_currentPosition!.longitude}), create a simple stick-figure style drawing by providing a sequence of coordinates. Requirements:
 1. First point must be (${_currentPosition!.latitude}, ${_currentPosition!.longitude}).
-2. Last point must be the same as the first point.
+2. Last point must be the same as the first point to close the shape.
 3. Each point should be within 100 meters of the previous point to ensure smooth lines.
 4. Total path distance (summed distance between all points) must not exceed 20 kilometers.
 5. Generate between 40-60 points to create a recognizable drawing.
-6. Think of a simple shape or object (like a heart, star, or animal or an object) and create coordinates that will draw it on the map.
-7. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
+6. IMPORTANT: Do not create simple linear progressions of coordinates. Each new point should have varying changes in both latitude and longitude to create actual shapes and curves.
+7. Create a simple stick-figure style drawing like:
+   - A cat (draw ears, head, body, legs, tail with varying angles)
+   - A house (draw roof, walls, door with actual corners)
+   - A stick figure (draw head, body, arms, legs with proper angles)
+8. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
       print('Sending prompt to Gemini: $prompt');
       final content = [Content.text(prompt)];
