@@ -554,8 +554,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
       _addPointsToMap(_currentDrawingPoints, isCompleted: true);
     }
 
-    _lastDrawingPosition =
-        null; // Reset last drawing position when starting new session
+    _lastDrawingPosition = null;
     setState(() {
       _isManualDrawing = true;
       _currentDrawingPoints = [];
