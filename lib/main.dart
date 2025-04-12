@@ -6,27 +6,91 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:convert';
+import 'package:auth0_flutter/auth0_flutter.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Credentials? _credentials;
+  late Auth0 auth0;
+
+  @override
+  void initState() {
+    super.initState();
+    auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com', 'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Walk and Draw',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MapScreen(),
+      home: _credentials == null ? _buildLoginScreen() : MapScreen(
+        credentials: _credentials!,
+        onLogout: _handleLogout,
+      ),
     );
+  }
+
+  Widget _buildLoginScreen() {
+    return Scaffold(
+      body: Center(
+        child: ElevatedButton(
+          onPressed: _handleLogin,
+          child: const Text('Log in'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    try {
+      final credentials = await auth0.webAuthentication(
+        scheme: 'com.programmersdiary.walk_and_draw'
+      ).login();
+
+      setState(() {
+        _credentials = credentials;
+      });
+    } catch (e) {
+      print('Login error: $e');
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      await auth0.webAuthentication(
+        scheme: 'com.programmersdiary.walk_and_draw'
+      ).logout();
+
+      setState(() {
+        _credentials = null;
+      });
+    } catch (e) {
+      print('Logout error: $e');
+    }
   }
 }
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final Credentials credentials;
+  final VoidCallback onLogout;
+
+  const MapScreen({
+    super.key, 
+    required this.credentials,
+    required this.onLogout,
+  });
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -433,6 +497,10 @@ Return ONLY the suggestion without any additional text or formatting.''';
       appBar: AppBar(
         title: const Text('Walk and Draw'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: widget.onLogout,
+          ),
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
