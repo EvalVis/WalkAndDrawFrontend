@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:http/http.dart' as http;
 import 'leaderboard_screen.dart';
 
 void main() {
@@ -308,9 +309,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _requestDrawingSuggestion() async {
-    if (_model == null || _currentPosition == null) {
-      print(
-          'Cannot request drawing: model=${_model != null}, position=${_currentPosition != null}');
+    if (_currentPosition == null) {
+      print('Cannot request drawing: position is null');
       return;
     }
 
@@ -336,20 +336,27 @@ class _MapScreenState extends State<MapScreen> {
    - A stick figure (draw head, body, arms, legs with proper angles)
 8. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
 
-      print('Sending prompt to Gemini: $prompt');
-      final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
+      print('Sending prompt to Cloud Function');
 
-      print('Gemini response received:');
-      print('Response text: ${response.text}');
-      if (response.promptFeedback != null) {
-        print('Prompt feedback: ${response.promptFeedback}');
-      }
+      final response = await http.post(
+        Uri.parse(
+            'https://us-central1-walkanddraw.cloudfunctions.net/callGemini'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'query': prompt}),
+      );
 
-      if (response.text != null) {
+      print('Cloud Function response received:');
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
         try {
+          final responseData =
+              json.decode(response.body) as Map<String, dynamic>;
+          final geminiResponse = responseData['response'] as String;
+
           // Try to parse the JSON response
-          final jsonResponse = response.text!
+          final jsonResponse = geminiResponse
               .trim()
               .replaceAll('```json', '') // Remove markdown code block start
               .replaceAll('```', '') // Remove markdown code block end
@@ -385,12 +392,13 @@ class _MapScreenState extends State<MapScreen> {
 
           _addPointsToMap(points);
         } catch (e) {
-          print('Error parsing Gemini response: $e');
+          print('Error parsing Cloud Function response: $e');
           print('Falling back to sample drawing due to parsing error');
           _createSampleDrawing();
         }
       } else {
-        print('Gemini response text is null, falling back to sample drawing');
+        print('Cloud Function returned error ${response.statusCode}');
+        print('Falling back to sample drawing');
         _createSampleDrawing();
       }
     } catch (e, stackTrace) {
@@ -511,13 +519,7 @@ class _MapScreenState extends State<MapScreen> {
     _addPointsToMap(points);
   }
 
-  // Add new method for getting drawing suggestions
   Future<void> _getDrawingSuggestion() async {
-    if (_model == null) {
-      print('Model not initialized');
-      return;
-    }
-
     setState(() {
       _isGettingSuggestion = true;
     });
@@ -545,17 +547,24 @@ class _MapScreenState extends State<MapScreen> {
 
 Return ONLY the suggestion without any additional text or formatting.''';
 
-      final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
+      final response = await http.post(
+        Uri.parse(
+            'https://us-central1-walkanddraw.cloudfunctions.net/callGemini'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'query': prompt}),
+      );
 
-      if (response.text != null) {
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body) as Map<String, dynamic>;
+        final suggestion = responseData['response'] as String;
+
         // Show suggestion in a dialog
         if (mounted) {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Drawing Suggestion'),
-              content: Text(response.text!.trim()),
+              content: Text(suggestion.trim()),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
