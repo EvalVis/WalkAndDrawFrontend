@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
@@ -111,7 +109,6 @@ class _MapScreenState extends State<MapScreen> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   Set<Circle> _circles = {};
-  GenerativeModel? _model;
   bool _isLoading = false;
   bool _isDrawingVisible = true;
   bool _isGettingSuggestion = false;
@@ -129,30 +126,12 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _checkLocationPermission();
-    _initializeGemini();
   }
 
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
     super.dispose();
-  }
-
-  Future<void> _initializeGemini() async {
-    try {
-      final apiKey =
-          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
-              .invokeMethod<String>('getGeminiApiKey');
-
-      if (apiKey != null && apiKey.isNotEmpty) {
-        _model = GenerativeModel(
-          model: 'gemini-2.0-flash',
-          apiKey: apiKey,
-        );
-      }
-    } catch (e) {
-      print('Error initializing Gemini: $e');
-    }
   }
 
   Future<void> _checkLocationPermission() async {
