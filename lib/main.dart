@@ -9,6 +9,7 @@ import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'leaderboard_screen.dart';
+import 'drawings_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,6 +118,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _isManualDrawing = false;
   List<LatLng> _currentDrawingPoints = [];
   Set<List<LatLng>> _completedDrawings = {};
+  Set<List<LatLng>> _savedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
 
   // Default center (will be updated when we get current location)
@@ -610,6 +612,14 @@ Return ONLY the suggestion without any additional text or formatting.''';
       if (_currentDrawingPoints.isNotEmpty) {
         // Save the current drawing as completed without connecting back to start
         _addPointsToMap(_currentDrawingPoints, isCompleted: true);
+
+        // Save the drawing to the database
+        _saveDrawingToCloud(_currentDrawingPoints);
+
+        // Add to saved drawings to prevent duplicate saves
+        _savedDrawings.add(List.from(_currentDrawingPoints));
+
+        // Clear current drawing points but keep the drawing visible
         _currentDrawingPoints = [];
       }
     });
@@ -617,6 +627,43 @@ Return ONLY the suggestion without any additional text or formatting.''';
     // Update distance in cloud when stopping drawing
     _updateDistanceInCloud();
     _totalDistance = 0;
+  }
+
+  Future<void> _saveDrawingToCloud(List<LatLng> points) async {
+    try {
+      final email = widget.credentials.user.email;
+      final name = widget.credentials.user.name;
+
+      if (email == null) return;
+
+      // Convert LatLng objects to a format that can be serialized to JSON
+      final coordinates = points
+          .map((point) => {
+                'lat': point.latitude,
+                'lng': point.longitude,
+              })
+          .toList();
+
+      final response = await http.post(
+        Uri.parse(
+            'https://us-central1-walkanddraw.cloudfunctions.net/saveDrawing'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'username': name ?? email.split('@')[0],
+          'coordinates': coordinates,
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        print('Failed to save drawing: ${response.body}');
+      } else {
+        print('Drawing saved successfully: ${response.body}');
+      }
+    } catch (e) {
+      print('Error saving drawing: $e');
+    }
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -818,6 +865,9 @@ class _MainAppState extends State<MainApp> {
           LeaderboardScreen(
             credentials: widget.credentials,
           ),
+          DrawingsScreen(
+            credentials: widget.credentials,
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -835,6 +885,10 @@ class _MainAppState extends State<MainApp> {
           BottomNavigationBarItem(
             icon: Icon(Icons.leaderboard),
             label: 'Leaderboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.brush),
+            label: 'Drawings',
           ),
         ],
       ),
