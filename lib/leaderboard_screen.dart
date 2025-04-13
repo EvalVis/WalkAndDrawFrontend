@@ -19,6 +19,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   List<Map<String, dynamic>> _leaderboardData = [];
   bool _isLoading = true;
   String? _error;
+  String? _userUsername;
 
   @override
   void initState() {
@@ -51,8 +52,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         });
       }
     } catch (e) {
-      print("MONGO ERROR");
-      print(e);
       setState(() {
         _error = 'Error: $e';
         _isLoading = false;
@@ -98,25 +97,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       itemCount: _leaderboardData.length,
                       itemBuilder: (context, index) {
                         final entry = _leaderboardData[index];
-                        final isCurrentUser =
-                            entry['email'] == widget.credentials.user.email;
 
                         return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                isCurrentUser ? Colors.blue : Colors.grey,
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(color: Colors.white),
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.blue,
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
-                          ),
-                          title: Text(entry['email'] ?? 'Unknown'),
-                          subtitle: Text(
-                              'Distance: ${(entry['distance'] / 1000).toStringAsFixed(2)} km'),
-                          trailing: isCurrentUser
-                              ? const Icon(Icons.star, color: Colors.amber)
-                              : null,
-                        );
+                            title: Text(entry['username']),
+                            subtitle: Text(
+                                'Distance: ${(entry['distance'] / 1000).toStringAsFixed(2)} km'));
                       },
                     ),
     );
