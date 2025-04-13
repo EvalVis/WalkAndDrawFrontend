@@ -118,7 +118,6 @@ class _MapScreenState extends State<MapScreen> {
   List<LatLng> _currentDrawingPoints = [];
   Set<List<LatLng>> _completedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
-  Timer? _distanceUpdateTimer;
 
   // Default center (will be updated when we get current location)
   final LatLng _defaultCenter =
@@ -134,7 +133,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
-    _distanceUpdateTimer?.cancel();
     super.dispose();
   }
 
@@ -569,6 +567,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
     setState(() {
       _isManualDrawing = true;
       _currentDrawingPoints = [];
+      _totalDistance = 0; // Reset distance when starting a new drawing
     });
 
     // Start listening to location updates
@@ -612,8 +611,12 @@ Return ONLY the suggestion without any additional text or formatting.''';
         // Save the current drawing as completed without connecting back to start
         _addPointsToMap(_currentDrawingPoints, isCompleted: true);
         _currentDrawingPoints = [];
+        _totalDistance = 0;
       }
     });
+
+    // Update distance in cloud when stopping drawing
+    _updateDistanceInCloud();
   }
 
   void _onMapCreated(GoogleMapController controller) {
