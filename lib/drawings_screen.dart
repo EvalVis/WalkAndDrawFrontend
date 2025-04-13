@@ -44,18 +44,9 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
     });
 
     try {
-      final email = widget.credentials.user.email;
-      if (email == null) {
-        setState(() {
-          _error = 'User email not available';
-          _isLoading = false;
-        });
-        return;
-      }
-
       final response = await http.get(
         Uri.parse(
-            'https://us-central1-walkanddraw.cloudfunctions.net/getDrawings?email=$email'),
+            'https://us-central1-walkanddraw.cloudfunctions.net/getDrawings'),
       );
 
       if (response.statusCode == 200) {
@@ -119,7 +110,8 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Drawings'),
+        title: const Text('Drawings'),
+        backgroundColor: Colors.blue,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
