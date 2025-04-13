@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import 'package:http/http.dart' as http;
 import 'leaderboard_screen.dart';
 
@@ -27,39 +25,12 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   Credentials? _credentials;
   late Auth0 auth0;
-  mongo.Db? _mongodb;
 
   @override
   void initState() {
     super.initState();
     auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com',
         'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
-    _initializeMongoDB();
-  }
-
-  Future<void> _initializeMongoDB() async {
-    try {
-      final username =
-          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
-              .invokeMethod<String>('getMongoDBUsername');
-      final password =
-          await const MethodChannel('com.programmersdiary.walk_and_draw/config')
-              .invokeMethod<String>('getMongoDBPassword');
-      if (username != null &&
-          password != null &&
-          username.isNotEmpty &&
-          password.isNotEmpty) {
-        final connectionString =
-            'mongodb+srv://$username:$password@walkanddraw.456gbtg.mongodb.net/Distances?retryWrites=true&w=majority&appName=WalkAndDraw';
-        _mongodb = await mongo.Db.create(connectionString);
-        await _mongodb!.open();
-        print('MongoDB connected successfully to Distances database');
-      } else {
-        print('MongoDB credentials not found');
-      }
-    } catch (e) {
-      print('Error connecting to MongoDB: $e');
-    }
   }
 
   @override
@@ -72,7 +43,6 @@ class _MyAppState extends State<MyApp> {
           : MainApp(
               credentials: _credentials!,
               onLogout: _handleLogout,
-              mongodb: _mongodb,
             ),
     );
   }
@@ -120,13 +90,11 @@ class _MyAppState extends State<MyApp> {
 class MapScreen extends StatefulWidget {
   final Credentials credentials;
   final VoidCallback onLogout;
-  final mongo.Db? mongodb;
 
   const MapScreen({
     super.key,
     required this.credentials,
     required this.onLogout,
-    this.mongodb,
   });
 
   @override
@@ -652,6 +620,32 @@ Return ONLY the suggestion without any additional text or formatting.''';
     mapController = controller;
   }
 
+  Future<void> _updateDistanceInCloud() async {
+    try {
+      final email = widget.credentials.user.email;
+      if (email == null) return;
+
+      final response = await http.post(
+        Uri.parse(
+            'https://us-central1-walkanddraw.cloudfunctions.net/updateDistance'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'distance': _totalDistance,
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        print('Failed to update distance: ${response.body}');
+      } else {
+        print('Distance updated successfully: ${response.body}');
+      }
+    } catch (e) {
+      print('Error updating distance: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -791,13 +785,11 @@ Return ONLY the suggestion without any additional text or formatting.''';
 class MainApp extends StatefulWidget {
   final Credentials credentials;
   final VoidCallback onLogout;
-  final mongo.Db? mongodb;
 
   const MainApp({
     super.key,
     required this.credentials,
     required this.onLogout,
-    this.mongodb,
   });
 
   @override
@@ -816,10 +808,9 @@ class _MainAppState extends State<MainApp> {
           MapScreen(
             credentials: widget.credentials,
             onLogout: widget.onLogout,
-            mongodb: widget.mongodb,
           ),
           LeaderboardScreen(
-            mongodb: widget.mongodb,
+            credentials: widget.credentials,
           ),
         ],
       ),

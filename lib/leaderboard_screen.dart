@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
-import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:auth0_flutter/auth0_flutter.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  final mongo.Db? mongodb;
+  final Credentials credentials;
 
   const LeaderboardScreen({
     super.key,
-    required this.mongodb,
+    required this.credentials,
   });
 
   @override
@@ -16,42 +17,46 @@ class LeaderboardScreen extends StatefulWidget {
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   List<Map<String, dynamic>> _leaderboardData = [];
-  Timer? _updateTimer;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadLeaderboardData();
-    _startPeriodicUpdates();
+    _fetchLeaderboardData();
   }
 
-  @override
-  void dispose() {
-    _updateTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startPeriodicUpdates() {
-    _updateTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      _loadLeaderboardData();
+  Future<void> _fetchLeaderboardData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
     });
-  }
-
-  Future<void> _loadLeaderboardData() async {
-    if (widget.mongodb == null) return;
 
     try {
-      final collection = widget.mongodb!.collection('Ink');
-      final cursor = await collection.find(
-        mongo.where.sortBy('distance', descending: true),
+      final response = await http.get(
+        Uri.parse(
+            'https://us-central1-walkanddraw.cloudfunctions.net/getLeaderboard'),
       );
 
-      final List<Map<String, dynamic>> data = await cursor.toList();
-      setState(() {
-        _leaderboardData = data;
-      });
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _leaderboardData = data.cast<Map<String, dynamic>>();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'Failed to load leaderboard data: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      print('Error loading leaderboard data: $e');
+      print("MONGO ERROR");
+      print(e);
+      setState(() {
+        _error = 'Error: $e';
+        _isLoading = false;
+      });
     }
   }
 
@@ -60,45 +65,60 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leaderboard'),
-        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchLeaderboardData,
+          ),
+        ],
       ),
-      body: _leaderboardData.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : ListView.builder(
-              itemCount: _leaderboardData.length,
-              itemBuilder: (context, index) {
-                final user = _leaderboardData[index];
-                final distance = (user['distance'] as num).toDouble();
-                final rank = index + 1;
-
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: rank <= 3 ? Colors.amber : Colors.blue,
-                    child: Text(
-                      rank.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchLeaderboardData,
+                        child: const Text('Try Again'),
+                      ),
+                    ],
                   ),
-                  title: Text(
-                    user['username'] ?? 'Anonymous',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                )
+              : _leaderboardData.isEmpty
+                  ? const Center(child: Text('No data available'))
+                  : ListView.builder(
+                      itemCount: _leaderboardData.length,
+                      itemBuilder: (context, index) {
+                        final entry = _leaderboardData[index];
+                        final isCurrentUser =
+                            entry['email'] == widget.credentials.user.email;
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                isCurrentUser ? Colors.blue : Colors.grey,
+                            child: Text(
+                              '${index + 1}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          title: Text(entry['email'] ?? 'Unknown'),
+                          subtitle: Text(
+                              'Distance: ${(entry['distance'] / 1000).toStringAsFixed(2)} km'),
+                          trailing: isCurrentUser
+                              ? const Icon(Icons.star, color: Colors.amber)
+                              : null,
+                        );
+                      },
                     ),
-                  ),
-                  subtitle: Text(
-                    '${(distance / 1000).toStringAsFixed(2)} km',
-                    style: const TextStyle(
-                      color: Colors.green,
-                    ),
-                  ),
-                );
-              },
-            ),
     );
   }
 }
