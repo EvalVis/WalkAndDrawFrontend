@@ -12,10 +12,6 @@ class MainActivity: FlutterActivity() {
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "getGeminiApiKey" -> {
-                    val apiKey = context.getString(R.string.gemini_api_key)
-                    result.success(apiKey)
-                }
                 "getMongoDBUsername" -> {
                     val username = context.getString(R.string.mongodb_atlas_username)
                     result.success(username)

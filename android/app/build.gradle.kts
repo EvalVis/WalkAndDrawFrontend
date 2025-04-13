@@ -29,7 +29,6 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         resValue("string", "google_maps_api_key", System.getenv("Google_maps_API") ?: "")
-        resValue("string", "gemini_api_key", System.getenv("GEMINI_API") ?: "")
         resValue("string", "mongodb_atlas_username", System.getenv("MONGODB_ATLAS_USERNAME") ?: "")
         resValue("string", "mongodb_atlas_password", System.getenv("MONGODB_ATLAS_PASSWORD") ?: "")
         manifestPlaceholders["auth0Domain"] = "dev-nfxagfo4wp0f5ee7.us.auth0.com"

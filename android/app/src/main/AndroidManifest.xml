@@ -12,9 +12,6 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_api_key" />
         <meta-data
-            android:name="com.google.ai.gemini.API_KEY"
-            android:value="@string/gemini_api_key" />
-        <meta-data
             android:name="com.mongodb.atlas.USERNAME"
             android:value="@string/mongodb_atlas_username" />
         <meta-data
