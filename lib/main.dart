@@ -611,12 +611,12 @@ Return ONLY the suggestion without any additional text or formatting.''';
         // Save the current drawing as completed without connecting back to start
         _addPointsToMap(_currentDrawingPoints, isCompleted: true);
         _currentDrawingPoints = [];
-        _totalDistance = 0;
       }
     });
 
     // Update distance in cloud when stopping drawing
     _updateDistanceInCloud();
+    _totalDistance = 0;
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -626,6 +626,8 @@ Return ONLY the suggestion without any additional text or formatting.''';
   Future<void> _updateDistanceInCloud() async {
     try {
       final email = widget.credentials.user.email;
+      final name = widget.credentials.user.name;
+
       if (email == null) return;
 
       final response = await http.post(
@@ -634,6 +636,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
+          'username': name,
           'distance': _totalDistance,
           'timestamp': DateTime.now().toIso8601String(),
         }),
