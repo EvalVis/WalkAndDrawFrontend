@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'leaderboard_screen.dart';
 import 'drawings_screen.dart';
+import 'login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,37 +39,19 @@ class _MyAppState extends State<MyApp> {
       title: 'Walk and Draw',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: _credentials == null
-          ? _buildLoginScreen()
+          ? LoginScreen(
+              auth0: auth0,
+              onLogin: (credentials) {
+                setState(() {
+                  _credentials = credentials;
+                });
+              },
+            )
           : MainApp(
               credentials: _credentials!,
               onLogout: _handleLogout,
             ),
     );
-  }
-
-  Widget _buildLoginScreen() {
-    return Scaffold(
-      body: Center(
-        child: ElevatedButton(
-          onPressed: _handleLogin,
-          child: const Text('Log in'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleLogin() async {
-    try {
-      final credentials = await auth0
-          .webAuthentication(scheme: 'com.programmersdiary.walkanddraw')
-          .login();
-
-      setState(() {
-        _credentials = credentials;
-      });
-    } catch (e) {
-      print('Login error: $e');
-    }
   }
 
   Future<void> _handleLogout() async {
