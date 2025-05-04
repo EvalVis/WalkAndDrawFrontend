@@ -685,108 +685,117 @@ Return ONLY the suggestion without any additional text or formatting.''';
         title: const Text('Walk and Draw'),
         centerTitle: false,
         actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                widget.credentials.user.name ?? 'User',
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: widget.onLogout,
-          ),
-          ElevatedButton(
-            onPressed: _isManualDrawing ? _stopDrawing : _startDrawing,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isManualDrawing ? Colors.red : Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(_isManualDrawing ? 'Stop Drawing' : 'Start Drawing'),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'drawing_suggestion',
-                    child: Row(
-                      children: [
-                        if (_isGettingSuggestion)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 8.0),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.black87),
-                              ),
-                            ),
-                          ),
-                        const Text('Suggest drawing'),
-                      ],
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      widget.credentials.user.email ?? 'User',
+                      style: const TextStyle(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 'ai_draw',
-                    child: Row(
-                      children: [
-                        if (_isLoading)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 8.0),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.black87),
-                              ),
-                            ),
-                          ),
-                        Text(_isLoading ? 'Generating...' : 'AI Drawing'),
-                      ],
-                    ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: widget.onLogout,
+                ),
+                ElevatedButton(
+                  onPressed: _isManualDrawing ? _stopDrawing : _startDrawing,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _isManualDrawing ? Colors.red : Colors.green,
+                    foregroundColor: Colors.white,
                   ),
-                  if (_polylines.isNotEmpty)
-                    PopupMenuItem(
-                      value: 'toggle',
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isDrawingVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            size: 20,
-                            color: Colors.black87,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(_isDrawingVisible
-                              ? 'Hide AI Drawing'
-                              : 'Show AI Drawing'),
-                        ],
+                  child:
+                      Text(_isManualDrawing ? 'Stop Drawing' : 'Start Drawing'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: Colors.black87),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'drawing_suggestion',
+                        child: Row(
+                          children: [
+                            if (_isGettingSuggestion)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 8.0),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.black87),
+                                  ),
+                                ),
+                              ),
+                            const Text('Suggest drawing'),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
-                onSelected: (value) {
-                  if (value == 'toggle') {
-                    setState(() {
-                      _isDrawingVisible = !_isDrawingVisible;
-                    });
-                  } else if (value == 'ai_draw' && !_isLoading) {
-                    _requestDrawingSuggestion();
-                  } else if (value == 'drawing_suggestion' &&
-                      !_isGettingSuggestion) {
-                    _getDrawingSuggestion();
-                  }
-                },
-              ),
+                      PopupMenuItem(
+                        value: 'ai_draw',
+                        child: Row(
+                          children: [
+                            if (_isLoading)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 8.0),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.black87),
+                                  ),
+                                ),
+                              ),
+                            Text(_isLoading ? 'Generating...' : 'AI Drawing'),
+                          ],
+                        ),
+                      ),
+                      if (_polylines.isNotEmpty)
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(
+                            children: [
+                              Icon(
+                                _isDrawingVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                size: 20,
+                                color: Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(_isDrawingVisible
+                                  ? 'Hide AI Drawing'
+                                  : 'Show AI Drawing'),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'toggle') {
+                        setState(() {
+                          _isDrawingVisible = !_isDrawingVisible;
+                        });
+                      } else if (value == 'ai_draw' && !_isLoading) {
+                        _requestDrawingSuggestion();
+                      } else if (value == 'drawing_suggestion' &&
+                          !_isGettingSuggestion) {
+                        _getDrawingSuggestion();
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
