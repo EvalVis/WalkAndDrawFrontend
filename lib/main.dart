@@ -101,9 +101,7 @@ class _MapScreenState extends State<MapScreen> {
   Set<List<LatLng>> _savedDrawings = {};
   StreamSubscription<Position>? _positionStreamSubscription;
 
-  // Default center (will be updated when we get current location)
-  final LatLng _defaultCenter =
-      const LatLng(54.687157, 25.279652); // Vilnius coordinates
+  final LatLng _defaultCenter = const LatLng(54.687157, 25.279652);
 
   @override
   void initState() {
@@ -146,7 +144,7 @@ class _MapScreenState extends State<MapScreen> {
       _currentPosition = await Geolocator.getCurrentPosition();
       _updateCurrentLocationMarker();
     } catch (e) {
-      // Ignore position error as the app can still work with default location
+      print('Error getting current position: $e');
     }
   }
 
@@ -172,15 +170,12 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     setState(() {
-      // Clear only current drawing elements
       _polylines.removeWhere(
           (polyline) => polyline.polylineId.value.startsWith('current_'));
       _circles.removeWhere(
           (circle) => circle.circleId.value.startsWith('current_'));
 
-      // Add current drawing if there are points
       if (!isCompleted && points.isNotEmpty) {
-        // Add circles for current points
         for (var i = 0; i < points.length; i++) {
           _circles.add(
             Circle(
@@ -195,7 +190,6 @@ class _MapScreenState extends State<MapScreen> {
           );
         }
 
-        // Add polyline for current drawing
         _polylines.add(
           Polyline(
             polylineId:
@@ -207,9 +201,7 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
 
-      // Always show completed drawings
       for (var drawing in _completedDrawings) {
-        // Add circles for completed drawing points
         for (var i = 0; i < drawing.length; i++) {
           _circles.add(
             Circle(
@@ -224,7 +216,6 @@ class _MapScreenState extends State<MapScreen> {
           );
         }
 
-        // Add polyline for completed drawing
         _polylines.add(
           Polyline(
             polylineId: PolylineId(
@@ -246,7 +237,6 @@ class _MapScreenState extends State<MapScreen> {
 
     setState(() {
       _isLoading = true;
-      // Clear previous drawing
       _polylines.clear();
       _circles.clear();
     });
@@ -285,12 +275,11 @@ class _MapScreenState extends State<MapScreen> {
               json.decode(response.body) as Map<String, dynamic>;
           final geminiResponse = responseData['response'] as String;
 
-          // Try to parse the JSON response
           final jsonResponse = geminiResponse
               .trim()
-              .replaceAll('```json', '') // Remove markdown code block start
-              .replaceAll('```', '') // Remove markdown code block end
-              .trim(); // Remove any extra whitespace
+              .replaceAll('```json', '')
+              .replaceAll('```', '')
+              .trim();
 
           print('Attempting to parse JSON response: $jsonResponse');
 
@@ -298,14 +287,12 @@ class _MapScreenState extends State<MapScreen> {
           final points = <LatLng>[];
           double totalDistance = 0;
 
-          // Parse each coordinate and create LatLng points
           for (var i = 0; i < coordinates.length; i++) {
             final coord = coordinates[i];
             final point =
                 LatLng(coord['lat'].toDouble(), coord['lng'].toDouble());
             points.add(point);
 
-            // Calculate distance between consecutive points
             if (i > 0) {
               final distance = Geolocator.distanceBetween(
                 points[i - 1].latitude,
@@ -347,23 +334,20 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentPosition == null) return;
 
     final random = math.Random();
-    final numPoints =
-        random.nextInt(81) + 20; // Random between 20 and 100 points
+    final numPoints = random.nextInt(81) + 20;
     final points = <LatLng>[];
 
-    // Start from current location
     final startPoint =
         LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     points.add(startPoint);
 
     double totalDistance = 0;
-    final maxDistance = 20000; // 20 kilometers in meters
-    final maxStepDistance = 200.0; // Maximum 200m per step
+    final maxDistance = 20000;
+    final maxStepDistance = 200.0;
 
     for (int i = 1; i < numPoints; i++) {
       final lastPoint = points.last;
 
-      // Calculate distance to start point
       final distanceToStart = Geolocator.distanceBetween(
         lastPoint.latitude,
         lastPoint.longitude,
@@ -371,19 +355,15 @@ class _MapScreenState extends State<MapScreen> {
         startPoint.longitude,
       );
 
-      // If adding another point would make it impossible to return to start within limit
       if (totalDistance + distanceToStart >= maxDistance) {
-        // Add the start point to close the path
         points.add(startPoint);
         break;
       }
 
-      // Generate random angle and distance
       final angle = random.nextDouble() * 2 * math.pi;
       final stepDistance = random.nextDouble() * maxStepDistance;
 
-      // Calculate new point using haversine formula
-      final R = 6371000; // Earth's radius in meters
+      final R = 6371000;
       final lat1 = lastPoint.latitude * math.pi / 180;
       final lng1 = lastPoint.longitude * math.pi / 180;
 
@@ -400,7 +380,6 @@ class _MapScreenState extends State<MapScreen> {
         lng2 * 180 / math.pi,
       );
 
-      // Calculate actual distance to new point
       final distanceToNew = Geolocator.distanceBetween(
         lastPoint.latitude,
         lastPoint.longitude,
@@ -408,7 +387,6 @@ class _MapScreenState extends State<MapScreen> {
         newPoint.longitude,
       );
 
-      // Calculate distance from new point to start
       final newPointToStart = Geolocator.distanceBetween(
         newPoint.latitude,
         newPoint.longitude,
@@ -416,15 +394,11 @@ class _MapScreenState extends State<MapScreen> {
         startPoint.longitude,
       );
 
-      // Only add the point if:
-      // 1. The step distance is within our limit
-      // 2. Adding this point and returning to start won't exceed max distance
       if (distanceToNew <= maxStepDistance &&
           totalDistance + distanceToNew + newPointToStart <= maxDistance) {
         points.add(newPoint);
         totalDistance += distanceToNew;
       } else {
-        // If we can't add this point, try to connect back to start
         if (totalDistance + distanceToStart <= maxDistance) {
           points.add(startPoint);
         }
@@ -432,7 +406,6 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    // If we haven't connected back to start yet and we can do it within the limit
     if (points.last != startPoint) {
       final finalDistanceToStart = Geolocator.distanceBetween(
         points.last.latitude,
@@ -455,7 +428,6 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     try {
-      // Add random seed to prevent caching
       final random = math.Random();
       final categories = [
         'animal',
@@ -472,8 +444,7 @@ class _MapScreenState extends State<MapScreen> {
 1. Must be a single word or short phrase (a sentence long max)
 2. Should be something recognizable when drawn on a map
 3. Must be different from: kite, butterfly, cat, house, or stick figure
-4. Keep it family-friendly and fun
-5. Be creative and unexpected - ${random.nextInt(10000)} (random seed to prevent caching)
+4. Keep it family-friendly.
 
 Return ONLY the suggestion without any additional text or formatting.''';
 
@@ -488,7 +459,6 @@ Return ONLY the suggestion without any additional text or formatting.''';
         final responseData = json.decode(response.body) as Map<String, dynamic>;
         final suggestion = responseData['response'] as String;
 
-        // Show suggestion in a dialog
         if (mounted) {
           showDialog(
             context: context,
@@ -522,7 +492,6 @@ Return ONLY the suggestion without any additional text or formatting.''';
   }
 
   void _startDrawing() {
-    // If there's a current drawing, save it as completed
     if (_currentDrawingPoints.isNotEmpty) {
       _addPointsToMap(_currentDrawingPoints, isCompleted: true);
     }
@@ -531,14 +500,13 @@ Return ONLY the suggestion without any additional text or formatting.''';
     setState(() {
       _isManualDrawing = true;
       _currentDrawingPoints = [];
-      _totalDistance = 0; // Reset distance when starting a new drawing
+      _totalDistance = 0;
     });
 
-    // Start listening to location updates
     _positionStreamSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Update every 5 meters
+        distanceFilter: 5,
       ),
     ).listen((Position position) {
       if (_isManualDrawing) {
@@ -572,21 +540,13 @@ Return ONLY the suggestion without any additional text or formatting.''';
     setState(() {
       _isManualDrawing = false;
       if (_currentDrawingPoints.isNotEmpty) {
-        // Save the current drawing as completed without connecting back to start
         _addPointsToMap(_currentDrawingPoints, isCompleted: true);
-
-        // Save the drawing to the database
         _saveDrawingToCloud(_currentDrawingPoints);
-
-        // Add to saved drawings to prevent duplicate saves
         _savedDrawings.add(List.from(_currentDrawingPoints));
-
-        // Clear current drawing points but keep the drawing visible
         _currentDrawingPoints = [];
       }
     });
 
-    // Update distance in cloud when stopping drawing
     _updateDistanceInCloud();
     _totalDistance = 0;
   }
@@ -598,7 +558,6 @@ Return ONLY the suggestion without any additional text or formatting.''';
 
       if (email == null) return;
 
-      // Convert LatLng objects to a format that can be serialized to JSON
       final coordinates = points
           .map((point) => {
                 'lat': point.latitude,
