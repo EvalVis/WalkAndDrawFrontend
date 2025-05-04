@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'leaderboard_screen.dart';
 import 'drawings_screen.dart';
 import 'login_screen.dart';
+import 'location_permissions.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,40 +107,9 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLocationPermission();
   }
 
-  @override
-  void dispose() {
-    _positionStreamSubscription?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _checkLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      return;
-    }
-
-    setState(() {
-      _locationPermissionGranted = true;
-    });
-
+  Future<void> _getCurrentLocation() async {
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
       _updateCurrentLocationMarker();
@@ -758,6 +728,19 @@ Return ONLY the suggestion without any additional text or formatting.''';
             markers: _markers,
             polylines: _isDrawingVisible ? _polylines : {},
             circles: _isDrawingVisible ? _circles : {},
+          ),
+          LocationPermissions(
+            key: const ValueKey('location_permissions'),
+            onPermissionGranted: (granted) async {
+              if (mounted) {
+                setState(() {
+                  _locationPermissionGranted = granted;
+                });
+                if (granted) {
+                  await _getCurrentLocation();
+                }
+              }
+            },
           ),
         ],
       ),
