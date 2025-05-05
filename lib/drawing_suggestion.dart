@@ -3,24 +3,25 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
 
-class DrawingSuggestion extends StatefulWidget {
-  final Function(String) onSuggestionSelected;
-
-  const DrawingSuggestion({
-    super.key,
-    required this.onSuggestionSelected,
-  });
+class DrawingSuggestion extends PopupMenuEntry<String> {
+  const DrawingSuggestion({super.key});
 
   @override
   State<DrawingSuggestion> createState() => _DrawingSuggestionState();
+
+  @override
+  double get height => 48.0;
+
+  @override
+  bool represents(String? value) => value == 'drawing_suggestion';
 }
 
 class _DrawingSuggestionState extends State<DrawingSuggestion> {
-  bool _isGettingSuggestion = false;
+  bool _isLoading = false;
 
   Future<void> _getDrawingSuggestion() async {
     setState(() {
-      _isGettingSuggestion = true;
+      _isLoading = true;
     });
 
     try {
@@ -44,18 +45,15 @@ class _DrawingSuggestionState extends State<DrawingSuggestion> {
 5. Be creative and unexpected - ${random.nextInt(10000)}
 
 Return ONLY the suggestion without any additional text or formatting.''';
-
       final response = await http.post(
         Uri.parse(
             'https://us-central1-walkanddraw.cloudfunctions.net/callGemini'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': prompt}),
       );
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
         final suggestion = responseData['response'] as String;
-
         if (mounted) {
           showDialog(
             context: context,
@@ -83,7 +81,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
       print('Error getting drawing suggestion: $e');
     } finally {
       setState(() {
-        _isGettingSuggestion = false;
+        _isLoading = false;
       });
     }
   }
@@ -92,9 +90,10 @@ Return ONLY the suggestion without any additional text or formatting.''';
   Widget build(BuildContext context) {
     return PopupMenuItem(
       value: 'drawing_suggestion',
+      onTap: _getDrawingSuggestion,
       child: Row(
         children: [
-          if (_isGettingSuggestion)
+          if (_isLoading)
             const Padding(
               padding: EdgeInsets.only(right: 8.0),
               child: SizedBox(
@@ -106,7 +105,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
                 ),
               ),
             ),
-          const Text('Suggest drawing'),
+          Text(_isLoading ? 'Loading...' : 'AI suggestion'),
         ],
       ),
     );

@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
-class AiDrawing extends StatefulWidget {
+class AiDrawing extends PopupMenuEntry<String> {
   final Position? currentPosition;
   final Function(List<LatLng>) onDrawingGenerated;
 
@@ -17,6 +17,12 @@ class AiDrawing extends StatefulWidget {
 
   @override
   State<AiDrawing> createState() => _AiDrawingState();
+
+  @override
+  double get height => 48.0;
+
+  @override
+  bool represents(String? value) => value == 'ai_draw';
 }
 
 class _AiDrawingState extends State<AiDrawing> {
@@ -217,6 +223,7 @@ class _AiDrawingState extends State<AiDrawing> {
   Widget build(BuildContext context) {
     return PopupMenuItem(
       value: 'ai_draw',
+      onTap: _requestDrawingSuggestion,
       child: Row(
         children: [
           if (_isLoading)

@@ -95,7 +95,6 @@ class _MapScreenState extends State<MapScreen> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   Set<Circle> _circles = {};
-  bool _isLoading = false;
   bool _isDrawingVisible = true;
   bool _isManualDrawing = false;
   List<LatLng> _currentDrawingPoints = [];
@@ -387,18 +386,10 @@ class _MapScreenState extends State<MapScreen> {
                     icon: const Icon(Icons.arrow_drop_down,
                         color: Colors.black87),
                     itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'suggestion',
-                        child: DrawingSuggestion(
-                          onSuggestionSelected: (suggestion) {},
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'ai_draw',
-                        child: AiDrawing(
-                          currentPosition: _currentPosition,
-                          onDrawingGenerated: _handleDrawingGenerated,
-                        ),
+                      DrawingSuggestion(),
+                      AiDrawing(
+                        currentPosition: _currentPosition,
+                        onDrawingGenerated: _handleDrawingGenerated,
                       ),
                       if (_polylines.isNotEmpty)
                         PopupMenuItem(
