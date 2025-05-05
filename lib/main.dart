@@ -386,7 +386,16 @@ class _MapScreenState extends State<MapScreen> {
                     icon: const Icon(Icons.arrow_drop_down,
                         color: Colors.black87),
                     itemBuilder: (context) => [
-                      DrawingSuggestion(),
+                      PopupMenuItem(
+                        value: 'suggestion',
+                        child: const Text('AI Suggestion'),
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const DrawingSuggestion(),
+                          );
+                        },
+                      ),
                       AiDrawing(
                         currentPosition: _currentPosition,
                         onDrawingGenerated: _handleDrawingGenerated,
@@ -409,15 +418,13 @@ class _MapScreenState extends State<MapScreen> {
                                   : 'Show AI Drawing'),
                             ],
                           ),
+                          onTap: () {
+                            setState(() {
+                              _isDrawingVisible = !_isDrawingVisible;
+                            });
+                          },
                         ),
                     ],
-                    onSelected: (value) {
-                      if (value == 'toggle') {
-                        setState(() {
-                          _isDrawingVisible = !_isDrawingVisible;
-                        });
-                      }
-                    },
                   ),
                 ),
               ],

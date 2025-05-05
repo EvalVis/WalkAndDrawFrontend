@@ -3,21 +3,22 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
 
-class DrawingSuggestion extends PopupMenuEntry<String> {
+class DrawingSuggestion extends StatefulWidget {
   const DrawingSuggestion({super.key});
 
   @override
   State<DrawingSuggestion> createState() => _DrawingSuggestionState();
-
-  @override
-  double get height => 48.0;
-
-  @override
-  bool represents(String? value) => value == 'drawing_suggestion';
 }
 
 class _DrawingSuggestionState extends State<DrawingSuggestion> {
   bool _isLoading = false;
+  String? _suggestion;
+
+  @override
+  void initState() {
+    super.initState();
+    _getDrawingSuggestion();
+  }
 
   Future<void> _getDrawingSuggestion() async {
     setState(() {
@@ -45,37 +46,19 @@ class _DrawingSuggestionState extends State<DrawingSuggestion> {
 5. Be creative and unexpected - ${random.nextInt(10000)}
 
 Return ONLY the suggestion without any additional text or formatting.''';
+
       final response = await http.post(
         Uri.parse(
             'https://us-central1-walkanddraw.cloudfunctions.net/callGemini'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': prompt}),
       );
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
-        final suggestion = responseData['response'] as String;
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Drawing Suggestion'),
-              content: Text(suggestion.trim()),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _getDrawingSuggestion();
-                  },
-                  child: const Text('Suggest something else!'),
-                ),
-              ],
-            ),
-          );
-        }
+        setState(() {
+          _suggestion = responseData['response'] as String;
+        });
       }
     } catch (e) {
       print('Error getting drawing suggestion: $e');
@@ -88,26 +71,29 @@ Return ONLY the suggestion without any additional text or formatting.''';
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuItem(
-      value: 'drawing_suggestion',
-      onTap: _getDrawingSuggestion,
-      child: Row(
+    return AlertDialog(
+      title: const Text('Drawing Suggestion'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black87),
-                ),
-              ),
-            ),
-          Text(_isLoading ? 'Loading...' : 'AI suggestion'),
+            const Center(child: CircularProgressIndicator())
+          else if (_suggestion != null)
+            Text(_suggestion!.trim())
+          else
+            const Text('Karate cat'),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _getDrawingSuggestion,
+          child: const Text('Suggest something else!'),
+        ),
+      ],
     );
   }
 }
