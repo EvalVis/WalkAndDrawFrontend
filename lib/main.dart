@@ -12,6 +12,7 @@ import 'login_screen.dart';
 import 'location_permissions.dart';
 import 'drawing_suggestion.dart';
 import 'ai_drawing.dart';
+import 'ai_popup_menu.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -382,56 +383,16 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.arrow_drop_down,
-                        color: Colors.black87),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'suggestion',
-                        child: const Text('AI Suggestion'),
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const DrawingSuggestion(),
-                          );
-                        },
-                      ),
-                      PopupMenuItem(
-                        value: 'ai_draw',
-                        child: const Text('AI Drawing'),
-                        onTap: () {
-                          final aiDrawing = AiDrawing(
-                            currentPosition: _currentPosition,
-                            onDrawingGenerated: _handleDrawingGenerated,
-                          );
-                          aiDrawing.requestDrawingSuggestion();
-                        },
-                      ),
-                      if (_polylines.isNotEmpty)
-                        PopupMenuItem(
-                          value: 'toggle',
-                          child: Row(
-                            children: [
-                              Icon(
-                                _isDrawingVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                size: 20,
-                                color: Colors.black87,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(_isDrawingVisible
-                                  ? 'Hide AI Drawing'
-                                  : 'Show AI Drawing'),
-                            ],
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _isDrawingVisible = !_isDrawingVisible;
-                            });
-                          },
-                        ),
-                    ],
+                  child: AiPopupMenu(
+                    currentPosition: _currentPosition,
+                    onDrawingGenerated: _handleDrawingGenerated,
+                    isDrawingVisible: _isDrawingVisible,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _isDrawingVisible = !_isDrawingVisible;
+                      });
+                    },
+                    hasPolylines: _polylines.isNotEmpty,
                   ),
                 ),
               ],
