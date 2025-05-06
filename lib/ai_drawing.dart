@@ -1,47 +1,28 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
 
-class AiDrawing extends PopupMenuEntry<String> {
+class AiDrawing {
   final Position? currentPosition;
   final Function(List<LatLng>) onDrawingGenerated;
 
   const AiDrawing({
-    super.key,
     required this.currentPosition,
     required this.onDrawingGenerated,
   });
 
-  @override
-  State<AiDrawing> createState() => _AiDrawingState();
-
-  @override
-  double get height => 48.0;
-
-  @override
-  bool represents(String? value) => value == 'ai_draw';
-}
-
-class _AiDrawingState extends State<AiDrawing> {
-  bool _isLoading = false;
-
-  Future<void> _requestDrawingSuggestion() async {
-    if (widget.currentPosition == null) {
+  Future<void> requestDrawingSuggestion() async {
+    if (currentPosition == null) {
       print('Cannot request drawing: position is null');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       final prompt =
-          '''Given coordinates (${widget.currentPosition!.latitude}, ${widget.currentPosition!.longitude}), create a simple stick-figure style drawing by providing a sequence of coordinates. Requirements:
-1. First point must be (${widget.currentPosition!.latitude}, ${widget.currentPosition!.longitude}).
+          '''Given coordinates (${currentPosition!.latitude}, ${currentPosition!.longitude}), create a simple stick-figure style drawing by providing a sequence of coordinates. Requirements:
+1. First point must be (${currentPosition!.latitude}, ${currentPosition!.longitude}).
 2. Last point must be the same as the first point to close the shape.
 3. Each point should be within 100 meters of the previous point to ensure smooth lines.
 4. Total path distance (summed distance between all points) must not exceed 20 kilometers.
@@ -104,7 +85,7 @@ class _AiDrawingState extends State<AiDrawing> {
           print('Total path distance: ${totalDistance / 1000} kilometers');
           print('Number of points: ${points.length}');
 
-          widget.onDrawingGenerated(points);
+          onDrawingGenerated(points);
         } catch (e) {
           print('Error parsing Cloud Function response: $e');
           print('Falling back to sample drawing due to parsing error');
@@ -120,22 +101,18 @@ class _AiDrawingState extends State<AiDrawing> {
       print('Stack trace: $stackTrace');
       print('Falling back to sample drawing due to error');
       _createSampleDrawing();
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
   void _createSampleDrawing() {
-    if (widget.currentPosition == null) return;
+    if (currentPosition == null) return;
 
     final random = math.Random();
     final numPoints = random.nextInt(81) + 20;
     final points = <LatLng>[];
 
-    final startPoint = LatLng(
-        widget.currentPosition!.latitude, widget.currentPosition!.longitude);
+    final startPoint =
+        LatLng(currentPosition!.latitude, currentPosition!.longitude);
     points.add(startPoint);
 
     double totalDistance = 0;
@@ -216,31 +193,6 @@ class _AiDrawingState extends State<AiDrawing> {
       }
     }
 
-    widget.onDrawingGenerated(points);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuItem(
-      value: 'ai_draw',
-      onTap: _requestDrawingSuggestion,
-      child: Row(
-        children: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black87),
-                ),
-              ),
-            ),
-          Text(_isLoading ? 'Generating...' : 'AI Drawing'),
-        ],
-      ),
-    );
+    onDrawingGenerated(points);
   }
 }

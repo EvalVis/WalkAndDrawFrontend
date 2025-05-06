@@ -396,9 +396,16 @@ class _MapScreenState extends State<MapScreen> {
                           );
                         },
                       ),
-                      AiDrawing(
-                        currentPosition: _currentPosition,
-                        onDrawingGenerated: _handleDrawingGenerated,
+                      PopupMenuItem(
+                        value: 'ai_draw',
+                        child: const Text('AI Drawing'),
+                        onTap: () {
+                          final aiDrawing = AiDrawing(
+                            currentPosition: _currentPosition,
+                            onDrawingGenerated: _handleDrawingGenerated,
+                          );
+                          aiDrawing.requestDrawingSuggestion();
+                        },
                       ),
                       if (_polylines.isNotEmpty)
                         PopupMenuItem(
