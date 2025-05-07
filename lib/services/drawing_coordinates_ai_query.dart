@@ -21,24 +21,20 @@ class DrawingCoordinatesAiQuery {
    - A house (draw roof, walls, door with actual corners)
    - A stick figure (draw head, body, arms, legs with proper angles)
 8. Return ONLY a JSON array in this exact format, with no other text: [{"lat": x1, "lng": y1}, {"lat": x2, "lng": y2}, ...]''';
-
     try {
       final response = await http.post(
         Uri.parse(_baseUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': prompt}),
       );
-
       if (response.statusCode != 200) {
         throw Exception('Failed to get drawing coordinates');
       }
 
       final responseData = json.decode(response.body) as Map<String, dynamic>;
       final body = responseData['response'] as String;
-
       final jsonResponse =
           body.trim().replaceAll('```json', '').replaceAll('```', '').trim();
-
       final List<dynamic> coordinates = json.decode(jsonResponse);
       return coordinates
           .map((coord) => LatLng(
