@@ -20,14 +20,36 @@ class _LocationPermissionsState extends State<LocationPermissions> {
     _checkLocationPermission();
   }
 
-  // Make sure this is not rerendered on state change. So: save the permissions.
-
   Future<void> _checkLocationPermission() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (mounted && context.mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('Location Services Disabled'),
+            content: const Text(
+                'Please enable location services to use this feature.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Geolocator.openLocationSettings();
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+      }
       return;
     }
 
@@ -40,6 +62,31 @@ class _LocationPermissionsState extends State<LocationPermissions> {
     }
 
     if (permission == LocationPermission.deniedForever) {
+      // Show dialog to guide user to app settings
+      if (mounted && context.mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('Location Permissions Denied'),
+            content: const Text(
+                'Location permissions are permanently denied. Please enable them in app settings.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Geolocator.openAppSettings();
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+      }
       return;
     }
 

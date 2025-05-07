@@ -22,8 +22,6 @@ class AiPopupMenu extends StatelessWidget {
   });
 
   Future<void> _handleDrawingRequest() async {
-    if (currentPosition == null) return;
-
     final drawingGeneration = DrawingGenerator(
       currentPosition: currentPosition,
       onDrawingGenerated: onDrawingGenerated,
@@ -35,7 +33,6 @@ class AiPopupMenu extends StatelessWidget {
           .getDrawingCoordinates(currentPosition!);
       drawingGeneration.generateFromCoordinates(coordinates);
     } catch (e) {
-      print('Error getting drawing coordinates: $e');
       drawingGeneration.generateSampleDrawing();
     }
   }
