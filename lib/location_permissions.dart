@@ -62,7 +62,6 @@ class _LocationPermissionsState extends State<LocationPermissions> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Show dialog to guide user to app settings
       if (mounted && context.mounted) {
         await showDialog(
           context: context,

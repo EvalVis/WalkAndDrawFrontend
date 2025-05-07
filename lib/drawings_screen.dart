@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
+import 'vote_button.dart';
 
 enum SortOption {
   recent,
@@ -77,59 +78,15 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
     }
   }
 
-  Future<void> _voteForDrawing(String drawingId) async {
-    if (_votedDrawings.contains(drawingId)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You have already voted for this drawing'),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse(
-          'https://us-central1-walkanddraw.cloudfunctions.net/voteForDrawing',
-        ),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'drawingId': drawingId,
-          'voterEmail': widget.credentials.user.email,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _votedDrawings.add(drawingId);
-          final drawingIndex =
-              _drawings.indexWhere((d) => d['id'] == drawingId);
-          if (drawingIndex != -1) {
-            _drawings[drawingIndex]['voteCount'] =
-                (_drawings[drawingIndex]['voteCount'] ?? 0) + 1;
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vote recorded successfully'),
-          ),
-        );
-      } else {
-        final error = json.decode(response.body)['error'];
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error ?? 'Failed to vote for drawing'),
-          ),
-        );
+  Future<void> _voteSuccess(String drawingId) async {
+    setState(() {
+      _votedDrawings.add(drawingId);
+      final drawingIndex = _drawings.indexWhere((d) => d['id'] == drawingId);
+      if (drawingIndex != -1) {
+        _drawings[drawingIndex]['voteCount'] =
+            (_drawings[drawingIndex]['voteCount'] ?? 0) + 1;
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error voting for drawing: $e'),
-        ),
-      );
-    }
+    });
   }
 
   List<LatLng> _parseCoordinates(List<dynamic> coordinatesJson) {
@@ -251,28 +208,15 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
                                     ),
                                     const Spacer(),
                                     // Vote count and button
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '$voteCount votes',
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.thumb_up,
-                                            color: _votedDrawings
-                                                    .contains(drawingId)
-                                                ? Colors.blue
-                                                : Colors.grey,
-                                          ),
-                                          onPressed: () =>
-                                              _voteForDrawing(drawingId),
-                                        ),
-                                      ],
+                                    VoteButton(
+                                      drawingId: drawingId,
+                                      voterEmail:
+                                          widget.credentials.user.email ??
+                                              'anonymous',
+                                      voteCount: voteCount,
+                                      hasVoted:
+                                          _votedDrawings.contains(drawingId),
+                                      onVoteSuccess: _voteSuccess,
                                     ),
                                     Text(
                                       _formatDate(drawing['createdAt']),
