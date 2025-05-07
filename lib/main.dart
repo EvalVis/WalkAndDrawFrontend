@@ -10,8 +10,6 @@ import 'leaderboard_screen.dart';
 import 'drawings_screen.dart';
 import 'login_screen.dart';
 import 'location_permissions.dart';
-import 'drawing_suggestion.dart';
-import 'ai_drawing.dart';
 import 'ai_popup_menu.dart';
 
 void main() {
@@ -112,7 +110,7 @@ class _MapScreenState extends State<MapScreen> {
         _locationPermissionGranted = granted;
       });
       if (granted) {
-        await _getCurrentLocation();
+        await _streamCurrentLocation();
       }
     }
   }
@@ -121,16 +119,20 @@ class _MapScreenState extends State<MapScreen> {
     _addPointsToMap(points);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _handlePermissionGranted(false);
-  }
-
-  Future<void> _getCurrentLocation() async {
+  Future<void> _streamCurrentLocation() async {
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
       _updateCurrentLocationMarker();
+      Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+        ),
+      ).listen((Position position) {
+        setState(() {
+          _currentPosition = position;
+        });
+      });
     } catch (e) {
       print('Error getting current position: $e');
     }
@@ -384,6 +386,7 @@ class _MapScreenState extends State<MapScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: AiPopupMenu(
+                    key: GlobalKey(),
                     currentPosition: _currentPosition,
                     onDrawingGenerated: _handleDrawingGenerated,
                     isDrawingVisible: _isDrawingVisible,

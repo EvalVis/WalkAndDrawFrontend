@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'ai_drawing.dart';
+import 'services/drawing_coordinates_ai_query.dart';
+import 'services/drawing_generator.dart';
 import 'drawing_suggestion.dart';
 
 class AiPopupMenu extends StatelessWidget {
@@ -20,6 +21,25 @@ class AiPopupMenu extends StatelessWidget {
     required this.hasPolylines,
   });
 
+  Future<void> _handleDrawingRequest() async {
+    if (currentPosition == null) return;
+
+    final drawingGeneration = DrawingGenerator(
+      currentPosition: currentPosition,
+      onDrawingGenerated: onDrawingGenerated,
+    );
+
+    try {
+      final drawingCoordinatesAiQuery = DrawingCoordinatesAiQuery();
+      final coordinates = await drawingCoordinatesAiQuery
+          .getDrawingCoordinates(currentPosition!);
+      drawingGeneration.generateFromCoordinates(coordinates);
+    } catch (e) {
+      print('Error getting drawing coordinates: $e');
+      drawingGeneration.generateSampleDrawing();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
@@ -37,14 +57,8 @@ class AiPopupMenu extends StatelessWidget {
         ),
         PopupMenuItem(
           value: 'ai_draw',
+          onTap: _handleDrawingRequest,
           child: const Text('AI Drawing'),
-          onTap: () {
-            final aiDrawing = AiDrawing(
-              currentPosition: currentPosition,
-              onDrawingGenerated: onDrawingGenerated,
-            );
-            aiDrawing.requestDrawingSuggestion();
-          },
         ),
         if (hasPolylines)
           PopupMenuItem(

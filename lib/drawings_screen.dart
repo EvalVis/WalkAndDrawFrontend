@@ -37,7 +37,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
 
   @override
   void dispose() {
-    // Dispose of all map controllers
     for (var controller in _mapControllers.values) {
       controller.dispose();
     }
@@ -103,7 +102,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _votedDrawings.add(drawingId);
-          // Update the vote count in the local state
           final drawingIndex =
               _drawings.indexWhere((d) => d['id'] == drawingId);
           if (drawingIndex != -1) {
@@ -134,7 +132,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
     }
   }
 
-  // Convert JSON coordinates to LatLng objects
   List<LatLng> _parseCoordinates(List<dynamic> coordinatesJson) {
     return coordinatesJson.map((coord) {
       return LatLng(
@@ -144,7 +141,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
     }).toList();
   }
 
-  // Calculate bounds for a set of coordinates
   LatLngBounds _calculateBounds(List<LatLng> coordinates) {
     if (coordinates.isEmpty) {
       return LatLngBounds(
@@ -346,13 +342,13 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
   }
 
   String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown date';
+    if (dateString == null) return 'XXXX-XX-XX';
 
     try {
       final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
+      return '/${date.year}/${date.month}/${date.day}';
     } catch (e) {
-      return 'Invalid date';
+      return 'XXXX-XX-XX';
     }
   }
 }
