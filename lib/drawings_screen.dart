@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'vote_button.dart';
+import 'drawing_record.dart';
 
 enum SortOption {
   recent,
@@ -26,9 +26,8 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
   List<Map<String, dynamic>> _drawings = [];
   bool _isLoading = true;
   String? _error;
-  Map<String, GoogleMapController> _mapControllers = {};
-  SortOption _currentSort = SortOption.recent;
   Set<String> _votedDrawings = {};
+  SortOption _currentSort = SortOption.recent;
 
   @override
   void initState() {
@@ -38,9 +37,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
 
   @override
   void dispose() {
-    for (var controller in _mapControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -87,41 +83,6 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
             (_drawings[drawingIndex]['voteCount'] ?? 0) + 1;
       }
     });
-  }
-
-  List<LatLng> _parseCoordinates(List<dynamic> coordinatesJson) {
-    return coordinatesJson.map((coord) {
-      return LatLng(
-        coord['lat'].toDouble(),
-        coord['lng'].toDouble(),
-      );
-    }).toList();
-  }
-
-  LatLngBounds _calculateBounds(List<LatLng> coordinates) {
-    if (coordinates.isEmpty) {
-      return LatLngBounds(
-        southwest: const LatLng(0, 0),
-        northeast: const LatLng(0, 0),
-      );
-    }
-
-    double minLat = coordinates[0].latitude;
-    double maxLat = coordinates[0].latitude;
-    double minLng = coordinates[0].longitude;
-    double maxLng = coordinates[0].longitude;
-
-    for (var coord in coordinates) {
-      if (coord.latitude < minLat) minLat = coord.latitude;
-      if (coord.latitude > maxLat) maxLat = coord.latitude;
-      if (coord.longitude < minLng) minLng = coord.longitude;
-      if (coord.longitude > maxLng) maxLng = coord.longitude;
-    }
-
-    return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
   }
 
   @override
@@ -183,116 +144,15 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
                       itemCount: _drawings.length,
                       itemBuilder: (context, index) {
                         final drawing = _drawings[index];
-                        final coordinates =
-                            _parseCoordinates(drawing['coordinates']);
-                        final bounds = _calculateBounds(coordinates);
-                        final drawingId = drawing['id'];
-                        final voteCount = drawing['voteCount'] ?? 0;
-
-                        return Card(
-                          margin: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.person, size: 16),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      drawing['username'] ?? 'Anonymous',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    // Vote count and button
-                                    VoteButton(
-                                      drawingId: drawingId,
-                                      voterEmail:
-                                          widget.credentials.user.email ??
-                                              'anonymous',
-                                      voteCount: voteCount,
-                                      hasVoted:
-                                          _votedDrawings.contains(drawingId),
-                                      onVoteSuccess: _voteSuccess,
-                                    ),
-                                    Text(
-                                      _formatDate(drawing['createdAt']),
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 200,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  child: GoogleMap(
-                                    onMapCreated: (controller) {
-                                      _mapControllers[drawingId] = controller;
-                                      controller.animateCamera(
-                                        CameraUpdate.newLatLngBounds(
-                                            bounds, 50),
-                                      );
-                                    },
-                                    initialCameraPosition: CameraPosition(
-                                      target: coordinates.isNotEmpty
-                                          ? coordinates[0]
-                                          : const LatLng(0, 0),
-                                      zoom: 15,
-                                    ),
-                                    markers: {},
-                                    polylines: {
-                                      Polyline(
-                                        polylineId:
-                                            PolylineId('drawing_$drawingId'),
-                                        points: coordinates,
-                                        color: Colors.red,
-                                        width: 3,
-                                      ),
-                                    },
-                                    circles: coordinates.map((point) {
-                                      return Circle(
-                                        circleId: CircleId(
-                                            'point_${coordinates.indexOf(point)}_$drawingId'),
-                                        center: point,
-                                        radius: 3,
-                                        fillColor: Colors.red,
-                                        strokeColor: Colors.red,
-                                      );
-                                    }).toSet(),
-                                    mapToolbarEnabled: false,
-                                    zoomControlsEnabled: true,
-                                    myLocationButtonEnabled: false,
-                                    compassEnabled: false,
-                                    rotateGesturesEnabled: false,
-                                    scrollGesturesEnabled: true,
-                                    zoomGesturesEnabled: true,
-                                    tiltGesturesEnabled: false,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        return DrawingRecord(
+                          drawing: drawing,
+                          voterEmail:
+                              widget.credentials.user.email ?? 'anonymous',
+                          hasVoted: _votedDrawings.contains(drawing['id']),
+                          onVoteSuccess: _voteSuccess,
                         );
                       },
                     ),
     );
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'XXXX-XX-XX';
-
-    try {
-      final date = DateTime.parse(dateString);
-      return '/${date.year}/${date.month}/${date.day}';
-    } catch (e) {
-      return 'XXXX-XX-XX';
-    }
   }
 }
