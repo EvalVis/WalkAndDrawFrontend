@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
-import 'vote_button.dart';
 import 'drawing_record.dart';
 
 enum SortOption {
