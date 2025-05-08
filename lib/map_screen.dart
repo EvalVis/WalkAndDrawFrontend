@@ -5,6 +5,7 @@ import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
 import 'location_permissions.dart';
 import 'components/app_top_bar.dart';
+import 'components/drawing_map_renderer.dart';
 
 class MapScreen extends StatefulWidget {
   final Credentials credentials;
@@ -25,10 +26,9 @@ class _MapScreenState extends State<MapScreen> {
   bool _locationPermissionGranted = false;
   Position? _currentPosition;
   Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  Set<Circle> _circles = {};
   bool _isDrawingVisible = true;
-  Set<List<LatLng>> _completedDrawings = {};
+  List<List<LatLng>> _completedDrawings = [];
+  List<LatLng>? _currentDrawing;
   final _locationPermissionsKey = GlobalKey();
 
   final LatLng _defaultCenter = const LatLng(54.687157, 25.279652);
@@ -45,7 +45,9 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _handleDrawingGenerated(List<LatLng> points) {
-    _addPointsToMap(points);
+    setState(() {
+      _currentDrawing = points;
+    });
   }
 
   Future<void> _streamCurrentLocation() async {
@@ -83,73 +85,15 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _addPointsToMap(List<LatLng> points, {bool isCompleted = false}) {
-    if (isCompleted) {
-      _completedDrawings.add(List.from(points));
-    }
-
+  void _handlePointsUpdated(List<LatLng> points, bool isCompleted) {
     setState(() {
-      _polylines.removeWhere(
-          (polyline) => polyline.polylineId.value.startsWith('current_'));
-      _circles.removeWhere(
-          (circle) => circle.circleId.value.startsWith('current_'));
-
-      if (!isCompleted && points.isNotEmpty) {
-        for (var i = 0; i < points.length; i++) {
-          _circles.add(
-            Circle(
-              circleId: CircleId(
-                  'current_${DateTime.now().millisecondsSinceEpoch}_$i'),
-              center: points[i],
-              radius: 5,
-              fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
-              strokeColor: Colors.red,
-              strokeWidth: 1,
-            ),
-          );
-        }
-
-        _polylines.add(
-          Polyline(
-            polylineId:
-                PolylineId('current_${DateTime.now().millisecondsSinceEpoch}'),
-            points: points,
-            color: const Color.fromRGBO(255, 0, 0, 0.8),
-            width: 3,
-          ),
-        );
-      }
-
-      for (var drawing in _completedDrawings) {
-        for (var i = 0; i < drawing.length; i++) {
-          _circles.add(
-            Circle(
-              circleId: CircleId(
-                  'completed_${DateTime.now().millisecondsSinceEpoch}_$i'),
-              center: drawing[i],
-              radius: 5,
-              fillColor: const Color.fromRGBO(255, 0, 0, 0.8),
-              strokeColor: Colors.red,
-              strokeWidth: 1,
-            ),
-          );
-        }
-
-        _polylines.add(
-          Polyline(
-            polylineId: PolylineId(
-                'completed_${DateTime.now().millisecondsSinceEpoch}'),
-            points: drawing,
-            color: const Color.fromRGBO(255, 0, 0, 0.8),
-            width: 3,
-          ),
-        );
+      if (isCompleted) {
+        _completedDrawings.add(List.from(points));
+        _currentDrawing = null;
+      } else {
+        _currentDrawing = points;
       }
     });
-  }
-
-  void _handlePointsUpdated(List<LatLng> points, bool isCompleted) {
-    _addPointsToMap(points, isCompleted: isCompleted);
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -171,11 +115,14 @@ class _MapScreenState extends State<MapScreen> {
             _isDrawingVisible = !_isDrawingVisible;
           });
         },
-        hasPolylines: _polylines.isNotEmpty,
+        hasPolylines: _currentDrawing != null || _completedDrawings.isNotEmpty,
       ),
       body: Stack(
         children: [
-          GoogleMap(
+          DrawingMapRenderer(
+            completedDrawings: _completedDrawings,
+            currentDrawing: _currentDrawing,
+            isVisible: _isDrawingVisible,
             onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(
               target: _currentPosition != null
@@ -187,8 +134,6 @@ class _MapScreenState extends State<MapScreen> {
             myLocationEnabled: _locationPermissionGranted,
             myLocationButtonEnabled: _locationPermissionGranted,
             markers: _markers,
-            polylines: _isDrawingVisible ? _polylines : {},
-            circles: _isDrawingVisible ? _circles : {},
           ),
           LocationPermissions(
             key: _locationPermissionsKey,
