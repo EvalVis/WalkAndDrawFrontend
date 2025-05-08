@@ -3,14 +3,14 @@ import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../ai_popup_menu.dart';
+import 'drawing_button.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final Credentials credentials;
   final VoidCallback onLogout;
-  final bool isManualDrawing;
-  final VoidCallback onDrawingAction;
   final Position? currentPosition;
   final Function(List<LatLng>) onDrawingGenerated;
+  final Function(List<LatLng>, bool) onPointsUpdated;
   final bool isDrawingVisible;
   final VoidCallback onToggleVisibility;
   final bool hasPolylines;
@@ -19,10 +19,9 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.credentials,
     required this.onLogout,
-    required this.isManualDrawing,
-    required this.onDrawingAction,
     required this.currentPosition,
     required this.onDrawingGenerated,
+    required this.onPointsUpdated,
     required this.isDrawingVisible,
     required this.onToggleVisibility,
     required this.hasPolylines,
@@ -52,13 +51,9 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.logout),
                 onPressed: onLogout,
               ),
-              ElevatedButton(
-                onPressed: onDrawingAction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isManualDrawing ? Colors.red : Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(isManualDrawing ? 'Stop Drawing' : 'Start Drawing'),
+              DrawingButton(
+                credentials: credentials,
+                onPointsUpdated: onPointsUpdated,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),

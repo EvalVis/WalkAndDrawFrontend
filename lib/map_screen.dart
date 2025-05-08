@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:convert';
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
-import 'package:http/http.dart' as http;
 import 'location_permissions.dart';
 import 'components/app_top_bar.dart';
-import 'ai_popup_menu.dart';
 
 class MapScreen extends StatefulWidget {
   final Credentials credentials;
@@ -27,17 +24,11 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   bool _locationPermissionGranted = false;
   Position? _currentPosition;
-  Position? _lastDrawingPosition;
-  double _totalDistance = 0;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   Set<Circle> _circles = {};
   bool _isDrawingVisible = true;
-  bool _isManualDrawing = false;
-  List<LatLng> _currentDrawingPoints = [];
   Set<List<LatLng>> _completedDrawings = {};
-  Set<List<LatLng>> _savedDrawings = {};
-  StreamSubscription<Position>? _positionStreamSubscription;
   final _locationPermissionsKey = GlobalKey();
 
   final LatLng _defaultCenter = const LatLng(54.687157, 25.279652);
@@ -157,133 +148,12 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  void _startDrawing() {
-    if (_currentDrawingPoints.isNotEmpty) {
-      _addPointsToMap(_currentDrawingPoints, isCompleted: true);
-    }
-
-    _lastDrawingPosition = null;
-    setState(() {
-      _isManualDrawing = true;
-      _currentDrawingPoints = [];
-      _totalDistance = 0;
-    });
-
-    _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-      ),
-    ).listen((Position position) {
-      if (_isManualDrawing) {
-        if (_lastDrawingPosition != null) {
-          final distance = Geolocator.distanceBetween(
-            _lastDrawingPosition!.latitude,
-            _lastDrawingPosition!.longitude,
-            position.latitude,
-            position.longitude,
-          );
-          _totalDistance += distance;
-          print(
-              'Total distance walked: ${(_totalDistance / 1000).toStringAsFixed(2)} km');
-        }
-        _lastDrawingPosition = position;
-
-        setState(() {
-          final newPoint = LatLng(position.latitude, position.longitude);
-          if (_currentDrawingPoints.isEmpty ||
-              newPoint != _currentDrawingPoints.last) {
-            _currentDrawingPoints.add(newPoint);
-            _addPointsToMap(_currentDrawingPoints);
-          }
-        });
-      }
-    });
-  }
-
-  void _stopDrawing() {
-    _positionStreamSubscription?.cancel();
-    setState(() {
-      _isManualDrawing = false;
-      if (_currentDrawingPoints.isNotEmpty) {
-        _addPointsToMap(_currentDrawingPoints, isCompleted: true);
-        _saveDrawingToCloud(_currentDrawingPoints);
-        _savedDrawings.add(List.from(_currentDrawingPoints));
-        _currentDrawingPoints = [];
-      }
-    });
-
-    _updateDistanceInCloud();
-    _totalDistance = 0;
-  }
-
-  Future<void> _saveDrawingToCloud(List<LatLng> points) async {
-    try {
-      final email = widget.credentials.user.email;
-      final name = widget.credentials.user.name;
-
-      if (email == null) return;
-
-      final coordinates = points
-          .map((point) => {
-                'lat': point.latitude,
-                'lng': point.longitude,
-              })
-          .toList();
-
-      final response = await http.post(
-        Uri.parse(
-            'https://us-central1-walkanddraw.cloudfunctions.net/saveDrawing'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'username': name ?? email.split('@')[0],
-          'coordinates': coordinates,
-          'timestamp': DateTime.now().toIso8601String(),
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        print('Failed to save drawing: ${response.body}');
-      } else {
-        print('Drawing saved successfully: ${response.body}');
-      }
-    } catch (e) {
-      print('Error saving drawing: $e');
-    }
+  void _handlePointsUpdated(List<LatLng> points, bool isCompleted) {
+    _addPointsToMap(points, isCompleted: isCompleted);
   }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
-  }
-
-  Future<void> _updateDistanceInCloud() async {
-    try {
-      final email = widget.credentials.user.email;
-      final name = widget.credentials.user.name;
-
-      if (email == null) return;
-
-      final response = await http.post(
-        Uri.parse(
-            'https://us-central1-walkanddraw.cloudfunctions.net/updateDistance'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'username': name,
-          'distance': _totalDistance,
-          'timestamp': DateTime.now().toIso8601String(),
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        print('Failed to update distance: ${response.body}');
-      } else {
-        print('Distance updated successfully: ${response.body}');
-      }
-    } catch (e) {
-      print('Error updating distance: $e');
-    }
   }
 
   @override
@@ -292,10 +162,9 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppTopBar(
         credentials: widget.credentials,
         onLogout: widget.onLogout,
-        isManualDrawing: _isManualDrawing,
-        onDrawingAction: _isManualDrawing ? _stopDrawing : _startDrawing,
         currentPosition: _currentPosition,
         onDrawingGenerated: _handleDrawingGenerated,
+        onPointsUpdated: _handlePointsUpdated,
         isDrawingVisible: _isDrawingVisible,
         onToggleVisibility: () {
           setState(() {
