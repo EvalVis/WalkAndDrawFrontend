@@ -6,6 +6,7 @@ import 'package:auth0_flutter/auth0_flutter.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'location_permissions.dart';
+import 'components/app_top_bar.dart';
 import 'ai_popup_menu.dart';
 
 class MapScreen extends StatefulWidget {
@@ -288,57 +289,20 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Walk and Draw'),
-        centerTitle: false,
-        actions: [
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      widget.credentials.user.email ?? 'User',
-                      style: const TextStyle(fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: widget.onLogout,
-                ),
-                ElevatedButton(
-                  onPressed: _isManualDrawing ? _stopDrawing : _startDrawing,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isManualDrawing ? Colors.red : Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child:
-                      Text(_isManualDrawing ? 'Stop Drawing' : 'Start Drawing'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: AiPopupMenu(
-                    key: GlobalKey(),
-                    currentPosition: _currentPosition,
-                    onDrawingGenerated: _handleDrawingGenerated,
-                    isDrawingVisible: _isDrawingVisible,
-                    onToggleVisibility: () {
-                      setState(() {
-                        _isDrawingVisible = !_isDrawingVisible;
-                      });
-                    },
-                    hasPolylines: _polylines.isNotEmpty,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      appBar: AppTopBar(
+        credentials: widget.credentials,
+        onLogout: widget.onLogout,
+        isManualDrawing: _isManualDrawing,
+        onDrawingAction: _isManualDrawing ? _stopDrawing : _startDrawing,
+        currentPosition: _currentPosition,
+        onDrawingGenerated: _handleDrawingGenerated,
+        isDrawingVisible: _isDrawingVisible,
+        onToggleVisibility: () {
+          setState(() {
+            _isDrawingVisible = !_isDrawingVisible;
+          });
+        },
+        hasPolylines: _polylines.isNotEmpty,
       ),
       body: Stack(
         children: [
