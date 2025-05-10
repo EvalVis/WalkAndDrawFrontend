@@ -5,7 +5,6 @@ A Flutter application that combines walking with creative drawing on maps. Users
 ## Features
 
 - **Interactive Map Drawing**: Draw on Google Maps by walking around
-- **User Authentication**: Secure login with Auth0
 - **Leaderboard**: Compete with other users based on distance walked
 - **Drawing Gallery**: View and share your drawings with others
 
@@ -24,7 +23,6 @@ A Flutter application that combines walking with creative drawing on maps. Users
 - **Flutter**: UI framework
 - **google_maps_flutter**: For map display and interaction
 - **geolocator**: For location tracking
-- **auth0_flutter**: For user authentication
 - **mongo_dart**: For database operations
 - **http**: For API communication
 
@@ -41,7 +39,6 @@ The core application code is released under the GPL-3.0, which allows you to fre
 This application uses several proprietary APIs:
 
 - **Google Maps API**: Used for map display and location tracking
-- **Auth0**: Used for user authentication
 
 Please setup API keys for these APIs.
 
@@ -49,7 +46,7 @@ Please setup API keys for these APIs.
 
 1. Clone this repository
 2. Install Flutter dependencies: `flutter pub get`
-3. Set up your own API keys for Google Maps and Auth0
+3. Set up your own API keys for Google Maps
 4. Run the application: `flutter run`
 
 ## License

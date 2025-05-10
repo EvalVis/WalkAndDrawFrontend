@@ -30,9 +30,6 @@ android {
         versionName = flutter.versionName
         resValue("string", "google_maps_api_key", System.getenv("Google_maps_API") ?: "")
         resValue("string", "google_client_id", System.getenv("GOOGLE_CLIENT_ID") ?: "")
-
-        manifestPlaceholders["auth0Domain"] = "dev-nfxagfo4wp0f5ee7.us.auth0.com"
-        manifestPlaceholders["auth0Scheme"] = "com.programmersdiary.walkanddraw"
     }
 
     buildTypes {
