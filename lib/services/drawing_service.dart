@@ -4,7 +4,7 @@ import 'dart:convert';
 
 class DrawingService {
   static const String _baseUrl =
-      'https://us-central1-walkanddraw.cloudfunctions.net';
+      'https://us-central1-walkanddraw-459410.cloudfunctions.net';
 
   Future<bool> saveDrawing({
     required List<LatLng> points,

@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DrawingCoordinatesAiQuery {
   static const String _baseUrl =
-      'https://us-central1-walkanddraw.cloudfunctions.net/callGemini';
+      'https://us-central1-walkanddraw-459410.cloudfunctions.net/callGemini';
 
   Future<List<LatLng>> getDrawingCoordinates(Position position) async {
     final prompt =

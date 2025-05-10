@@ -43,7 +43,7 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
       final sortBy = _currentSort == SortOption.recent ? 'date' : 'votes';
       final response = await http.get(
         Uri.parse(
-          'https://us-central1-walkanddraw.cloudfunctions.net/getDrawingsSorted?sortBy=$sortBy',
+          'https://us-central1-walkanddraw-459410.cloudfunctions.net/getDrawingsSorted?sortBy=$sortBy',
         ),
       );
 
@@ -94,17 +94,16 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
               });
               _fetchDrawings();
             },
-            itemBuilder:
-                (BuildContext context) => [
-                  const PopupMenuItem(
-                    value: SortOption.recent,
-                    child: Text('Most Recent'),
-                  ),
-                  const PopupMenuItem(
-                    value: SortOption.mostVoted,
-                    child: Text('Most Voted'),
-                  ),
-                ],
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(
+                value: SortOption.recent,
+                child: Text('Most Recent'),
+              ),
+              const PopupMenuItem(
+                value: SortOption.mostVoted,
+                child: Text('Most Voted'),
+              ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -112,41 +111,40 @@ class _DrawingsScreenState extends State<DrawingsScreen> {
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
               ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _fetchDrawings,
-                      child: const Text('Try Again'),
-                    ),
-                  ],
-                ),
-              )
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchDrawings,
+                        child: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                )
               : _drawings.isEmpty
-              ? const Center(child: Text('No drawings yet'))
-              : ListView.builder(
-                itemCount: _drawings.length,
-                itemBuilder: (context, index) {
-                  final drawing = _drawings[index];
-                  return DrawingRecord(
-                    drawing: drawing,
-                    voterEmail: widget.user.email ?? 'anonymous',
-                    hasVoted: _votedDrawings.contains(drawing['id']),
-                    onVoteSuccess: _voteSuccess,
-                  );
-                },
-              ),
+                  ? const Center(child: Text('No drawings yet'))
+                  : ListView.builder(
+                      itemCount: _drawings.length,
+                      itemBuilder: (context, index) {
+                        final drawing = _drawings[index];
+                        return DrawingRecord(
+                          drawing: drawing,
+                          voterEmail: widget.user.email ?? 'anonymous',
+                          hasVoted: _votedDrawings.contains(drawing['id']),
+                          onVoteSuccess: _voteSuccess,
+                        );
+                      },
+                    ),
     );
   }
 }

@@ -31,7 +31,7 @@ class VoteButton extends StatelessWidget {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://us-central1-walkanddraw.cloudfunctions.net/voteForDrawing',
+          'https://us-central1-walkanddraw-459410.cloudfunctions.net/voteForDrawing',
         ),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({

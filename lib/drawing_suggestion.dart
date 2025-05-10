@@ -49,7 +49,7 @@ Return ONLY the suggestion without any additional text or formatting.''';
 
       final response = await http.post(
         Uri.parse(
-            'https://us-central1-walkanddraw.cloudfunctions.net/callGemini'),
+            'https://us-central1-walkanddraw-459410.cloudfunctions.net/callGemini'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': prompt}),
       );
