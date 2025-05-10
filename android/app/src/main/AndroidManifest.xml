@@ -11,6 +11,9 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_api_key" />
+        <meta-data
+            android:name="com.google.android.gms.auth.CLIENT_ID"
+            android:value="@string/google_client_id" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
