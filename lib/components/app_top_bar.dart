@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../ai_popup_menu.dart';
 import 'drawing_button.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
-  final Credentials credentials;
+  final GoogleSignInAccount user;
   final VoidCallback onLogout;
   final Position? currentPosition;
   final Function(List<LatLng>) onDrawingGenerated;
@@ -17,7 +17,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   const AppTopBar({
     super.key,
-    required this.credentials,
+    required this.user,
     required this.onLogout,
     required this.currentPosition,
     required this.onDrawingGenerated,
@@ -40,21 +40,15 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text(
-                    credentials.user.email ?? 'User',
+                    user.email,
                     style: const TextStyle(fontSize: 14),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: onLogout,
-              ),
-              DrawingButton(
-                credentials: credentials,
-                onPointsUpdated: onPointsUpdated,
-              ),
+              IconButton(icon: const Icon(Icons.logout), onPressed: onLogout),
+              DrawingButton(user: user, onPointsUpdated: onPointsUpdated),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: AiPopupMenu(

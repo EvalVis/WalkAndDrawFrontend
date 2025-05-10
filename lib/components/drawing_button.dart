@@ -3,15 +3,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import '../services/drawing_service.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class DrawingButton extends StatefulWidget {
-  final Credentials credentials;
+  final GoogleSignInAccount user;
   final Function(List<LatLng>, bool) onPointsUpdated;
 
   const DrawingButton({
     super.key,
-    required this.credentials,
+    required this.user,
     required this.onPointsUpdated,
   });
 
@@ -77,8 +77,8 @@ class _DrawingButtonState extends State<DrawingButton> {
 
       await _drawingService.saveDrawing(
         points: _currentDrawingPoints,
-        email: widget.credentials.user.email ?? '',
-        name: widget.credentials.user.name,
+        email: widget.user.email,
+        name: widget.user.displayName,
         distance: _totalDistance,
       );
 

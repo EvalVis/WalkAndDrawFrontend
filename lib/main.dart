@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'leaderboard_screen.dart';
 import 'drawings_screen.dart';
 import 'login_screen.dart';
@@ -18,14 +18,15 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
-  Credentials? _credentials;
-  late Auth0 auth0;
+  GoogleSignInAccount? _currentUser;
+  late GoogleSignIn _googleSignIn;
 
   @override
   void initState() {
     super.initState();
-    auth0 = Auth0('dev-nfxagfo4wp0f5ee7.us.auth0.com',
-        'Cj3Mrzu9h99Nd2ZCzWC5NFrJoxKzftRa');
+    _googleSignIn = GoogleSignIn(
+      clientId: const String.fromEnvironment('GOOGLE_CLIENT_ID'),
+    );
   }
 
   @override
@@ -33,17 +34,17 @@ class _AppState extends State<App> {
     return MaterialApp(
       title: 'Walk and Draw',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: _credentials == null
+      home: _currentUser == null
           ? LoginScreen(
-              auth0: auth0,
-              onLogin: (credentials) {
+              googleSignIn: _googleSignIn,
+              onLogin: (user) {
                 setState(() {
-                  _credentials = credentials;
+                  _currentUser = user;
                 });
               },
             )
           : MainApp(
-              credentials: _credentials!,
+              user: _currentUser!,
               onLogout: _handleLogout,
             ),
     );
@@ -51,12 +52,9 @@ class _AppState extends State<App> {
 
   Future<void> _handleLogout() async {
     try {
-      await auth0
-          .webAuthentication(scheme: 'com.programmersdiary.walkanddraw')
-          .logout();
-
+      await _googleSignIn.signOut();
       setState(() {
-        _credentials = null;
+        _currentUser = null;
       });
     } catch (e) {
       print('Logout error: $e');
@@ -65,12 +63,12 @@ class _AppState extends State<App> {
 }
 
 class MainApp extends StatefulWidget {
-  final Credentials credentials;
+  final GoogleSignInAccount user;
   final VoidCallback onLogout;
 
   const MainApp({
     super.key,
-    required this.credentials,
+    required this.user,
     required this.onLogout,
   });
 
@@ -88,14 +86,14 @@ class _MainAppState extends State<MainApp> {
         index: _selectedIndex,
         children: [
           MapScreen(
-            credentials: widget.credentials,
+            user: widget.user,
             onLogout: widget.onLogout,
           ),
           LeaderboardScreen(
-            credentials: widget.credentials,
+            user: widget.user,
           ),
           DrawingsScreen(
-            credentials: widget.credentials,
+            user: widget.user,
           ),
         ],
       ),

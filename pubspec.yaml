@@ -12,7 +12,7 @@ dependencies:
   google_maps_flutter: ^2.5.3
   geolocator: ^10.1.0
   cupertino_icons: ^1.0.2
-  auth0_flutter: ^1.9.0
+  google_sign_in: ^6.2.1
   mongo_dart: ^0.10.0
   http: ^1.1.0
 

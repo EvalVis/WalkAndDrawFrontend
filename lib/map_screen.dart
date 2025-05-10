@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'location_permissions.dart';
 import 'components/app_top_bar.dart';
 import 'components/drawing_map_renderer.dart';
 
 class MapScreen extends StatefulWidget {
-  final Credentials credentials;
+  final GoogleSignInAccount user;
   final VoidCallback onLogout;
 
   const MapScreen({
     super.key,
-    required this.credentials,
+    required this.user,
     required this.onLogout,
   });
 
@@ -104,7 +104,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppTopBar(
-        credentials: widget.credentials,
+        user: widget.user,
         onLogout: widget.onLogout,
         currentPosition: _currentPosition,
         onDrawingGenerated: _handleDrawingGenerated,

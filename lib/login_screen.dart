@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:auth0_flutter/auth0_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatelessWidget {
-  final Auth0 auth0;
-  final Function(Credentials) onLogin;
+  final GoogleSignIn googleSignIn;
+  final Function(GoogleSignInAccount) onLogin;
 
   const LoginScreen({
     super.key,
-    required this.auth0,
+    required this.googleSignIn,
     required this.onLogin,
   });
 
   Future<void> _handleLogin() async {
     try {
-      final credentials = await auth0
-          .webAuthentication(scheme: 'com.programmersdiary.walkanddraw')
-          .login();
-      onLogin(credentials);
+      final user = await googleSignIn.signIn();
+      if (user != null) {
+        onLogin(user);
+      }
     } catch (e) {
       print('Login error: $e');
     }
@@ -26,9 +26,10 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: ElevatedButton(
+        child: ElevatedButton.icon(
           onPressed: _handleLogin,
-          child: const Text('Log in'),
+          icon: const Icon(Icons.g_mobiledata),
+          label: const Text('Sign in with Google'),
         ),
       ),
     );
