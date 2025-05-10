@@ -11,7 +11,9 @@ void main() {
 }
 
 class App extends StatefulWidget {
-  const App({super.key});
+  final GoogleSignIn? googleSignIn;
+
+  const App({super.key, this.googleSignIn});
 
   @override
   State<App> createState() => _AppState();
@@ -24,9 +26,10 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
-    _googleSignIn = GoogleSignIn(
-      clientId: const String.fromEnvironment('GOOGLE_CLIENT_ID'),
-    );
+    _googleSignIn = widget.googleSignIn ??
+        GoogleSignIn(
+          clientId: const String.fromEnvironment('GOOGLE_CLIENT_ID'),
+        );
   }
 
   @override

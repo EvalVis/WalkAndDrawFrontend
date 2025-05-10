@@ -1,61 +1,45 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
 import 'package:walk_and_draw/main.dart';
-
-@GenerateMocks([GoogleSignIn, GoogleSignInAccount])
-import 'auth_test.mocks.dart';
+import 'fakes/fake_google_sign_in_account.dart';
 
 void main() {
-  late MockGoogleSignIn mockGoogleSignIn;
-  late MockGoogleSignInAccount mockGoogleSignInAccount;
+  late FakeGoogleSignIn fakeGoogleSignIn;
+  late App app;
 
   setUp(() {
-    mockGoogleSignIn = MockGoogleSignIn();
-    mockGoogleSignInAccount = MockGoogleSignInAccount();
+    fakeGoogleSignIn = FakeGoogleSignIn();
+    app = App(googleSignIn: fakeGoogleSignIn);
   });
 
-  group('Google Sign-In Tests', () {
-    test('User can login with Google', () async {
-      // Arrange
-      when(mockGoogleSignIn.signIn())
-          .thenAnswer((_) async => mockGoogleSignInAccount);
-      when(mockGoogleSignInAccount.email).thenReturn('test@example.com');
-      when(mockGoogleSignInAccount.displayName).thenReturn('Test User');
-
-      // Act
-      final user = await mockGoogleSignIn.signIn();
-
-      // Assert
-      expect(user, isNotNull);
-      expect(user?.email, equals('test@example.com'));
-      expect(user?.displayName, equals('Test User'));
-      verify(mockGoogleSignIn.signIn()).called(1);
+  group('App Authentication Tests', () {
+    testWidgets('Shows login screen when user is not signed in',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(app);
+      expect(find.text('Sign in with Google'), findsOneWidget);
+      expect(find.byIcon(Icons.g_mobiledata), findsOneWidget);
     });
 
-    test('User can logout', () async {
-      // Arrange
-      when(mockGoogleSignIn.signOut())
-          .thenAnswer((_) async => mockGoogleSignInAccount);
+    testWidgets('Shows main app after successful login',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(app);
+      await tester.tap(find.text('Sign in with Google'));
+      await tester.pumpAndSettle();
 
-      // Act
-      await mockGoogleSignIn.signOut();
-
-      // Assert
-      verify(mockGoogleSignIn.signOut()).called(1);
+      expect(find.text('Walk and Draw'), findsOneWidget);
+      expect(find.text('test@example.com'), findsOneWidget);
+      expect(find.byIcon(Icons.logout), findsOneWidget);
     });
 
-    test('Login fails gracefully when user cancels', () async {
-      // Arrange
-      when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
+    testWidgets('Shows login screen after logout', (WidgetTester tester) async {
+      await tester.pumpWidget(app);
+      await tester.tap(find.text('Sign in with Google'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.logout));
+      await tester.pumpAndSettle();
 
-      // Act
-      final user = await mockGoogleSignIn.signIn();
-
-      // Assert
-      expect(user, isNull);
-      verify(mockGoogleSignIn.signIn()).called(1);
+      expect(find.text('Sign in with Google'), findsOneWidget);
+      expect(find.byIcon(Icons.g_mobiledata), findsOneWidget);
     });
   });
 }
