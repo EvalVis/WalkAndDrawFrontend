@@ -16,6 +16,7 @@ void main() {
     testWidgets('Shows login screen when user is not signed in',
         (WidgetTester tester) async {
       await tester.pumpWidget(app);
+
       expect(find.text('Sign in with Google'), findsOneWidget);
       expect(find.byIcon(Icons.g_mobiledata), findsOneWidget);
     });
@@ -35,6 +36,7 @@ void main() {
       await tester.pumpWidget(app);
       await tester.tap(find.text('Sign in with Google'));
       await tester.pumpAndSettle();
+
       await tester.tap(find.byIcon(Icons.logout));
       await tester.pumpAndSettle();
 
