@@ -1,3 +1,13 @@
+subprojects {
+    afterEvaluate {
+        val android = extensions.getByName("android") as com.android.build.gradle.BaseExtension
+        android.compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
