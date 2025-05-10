@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
-class FakeGoogleSignInAccount implements GoogleSignInAccount {
+class FakeGoogleSignIn implements GoogleSignIn, GoogleSignInAccount {
+  final GoogleSignInAccount? _currentUser;
   @override
   final String email;
   @override
@@ -10,50 +11,41 @@ class FakeGoogleSignInAccount implements GoogleSignInAccount {
   @override
   final String photoUrl;
 
-  FakeGoogleSignInAccount({
-    required this.email,
-    required this.displayName,
+  FakeGoogleSignIn({
+    this.email = 'test@example.com',
+    this.displayName = 'Test User',
     this.id = 'fake-id',
     this.photoUrl = 'https://example.com/photo.jpg',
-  });
+    GoogleSignInAccount? currentUser,
+  }) : _currentUser = currentUser;
 
   @override
-  Future<Map<String, String>> get authHeaders => throw UnimplementedError();
+  String? get clientId => null;
 
   @override
-  Future<void> clearAuthCache() => throw UnimplementedError();
+  String? get forceAccountName => null;
 
   @override
-  Future<GoogleSignInAuthentication> get authentication =>
-      throw UnimplementedError();
+  bool get forceCodeForRefreshToken => false;
 
   @override
-  String? get serverAuthCode => null;
-}
-
-class FakeGoogleSignIn implements GoogleSignIn {
-  GoogleSignInAccount? _currentUser;
+  String? get hostedDomain => null;
 
   @override
-  Future<GoogleSignInAccount?> signIn() async {
-    _currentUser = FakeGoogleSignInAccount(
-      email: 'test@example.com',
-      displayName: 'Test User',
-    );
-    return _currentUser;
-  }
+  List<String> get scopes => [];
 
   @override
-  Future<GoogleSignInAccount?> signOut() async {
-    final user = _currentUser;
-    _currentUser = null;
-    return user;
-  }
+  String? get serverClientId => null;
 
   @override
-  Future<GoogleSignInAccount?> getCurrentUser() async => _currentUser;
+  Future<GoogleSignInAccount?> signIn() async => this;
 
-  // Unimplemented methods
+  @override
+  Future<GoogleSignInAccount?> signOut() async => null;
+
+  @override
+  GoogleSignInAccount? get currentUser => _currentUser;
+
   @override
   Future<GoogleSignInAccount?> signInSilently(
           {bool reAuthenticate = false, bool suppressErrors = false}) =>
@@ -73,48 +65,22 @@ class FakeGoogleSignIn implements GoogleSignIn {
   Future<bool> requestScopes(List<String> scopes) => throw UnimplementedError();
 
   @override
-  List<String> get scopes => throw UnimplementedError();
-
-  @override
-  set scopes(List<String> scopes) => throw UnimplementedError();
-
-  @override
-  String get clientId => throw UnimplementedError();
-
-  @override
-  set clientId(String clientId) => throw UnimplementedError();
-
-  @override
-  String get serverClientId => throw UnimplementedError();
-
-  @override
-  set serverClientId(String serverClientId) => throw UnimplementedError();
-
-  @override
-  String get hostedDomain => throw UnimplementedError();
-
-  @override
-  set hostedDomain(String hostedDomain) => throw UnimplementedError();
-
-  @override
-  GoogleSignInAccount? get currentUser => _currentUser;
-
-  @override
-  String? get forceAccountName => null;
-
-  @override
-  set forceAccountName(String? value) => throw UnimplementedError();
-
-  @override
-  bool get forceCodeForRefreshToken => false;
-
-  @override
-  set forceCodeForRefreshToken(bool value) => throw UnimplementedError();
-
-  @override
   Stream<GoogleSignInAccount?> get onCurrentUserChanged =>
       throw UnimplementedError();
 
   @override
   SignInOption get signInOption => SignInOption.standard;
+
+  @override
+  Future<Map<String, String>> get authHeaders => throw UnimplementedError();
+
+  @override
+  Future<void> clearAuthCache() => throw UnimplementedError();
+
+  @override
+  Future<GoogleSignInAuthentication> get authentication =>
+      throw UnimplementedError();
+
+  @override
+  String? get serverAuthCode => null;
 }
