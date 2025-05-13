@@ -27,9 +27,10 @@ class _MapScreenState extends State<MapScreen> {
   Position? _currentPosition;
   Set<Marker> _markers = {};
   bool _isDrawingVisible = true;
-  List<List<LatLng>> _completedDrawings = [];
-  List<LatLng>? _currentDrawing;
+  List<ColoredDrawing> _completedDrawings = [];
+  ColoredDrawing? _currentDrawing;
   final _locationPermissionsKey = GlobalKey();
+  Color _currentDrawingColor = Colors.red;
 
   final LatLng _defaultCenter = const LatLng(54.687157, 25.279652);
 
@@ -46,7 +47,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _handleDrawingGenerated(List<LatLng> points) {
     setState(() {
-      _currentDrawing = points;
+      _currentDrawing = ColoredDrawing.fromPoints(points, _currentDrawingColor);
     });
   }
 
@@ -85,14 +86,20 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _handlePointsUpdated(List<LatLng> points, bool isCompleted) {
+  void _handlePointsUpdated(ColoredDrawing drawing, bool isCompleted) {
     setState(() {
       if (isCompleted) {
-        _completedDrawings.add(List.from(points));
+        _completedDrawings.add(drawing);
         _currentDrawing = null;
       } else {
-        _currentDrawing = points;
+        _currentDrawing = drawing;
       }
+    });
+  }
+
+  void _handleColorChanged(Color color) {
+    setState(() {
+      _currentDrawingColor = color;
     });
   }
 
@@ -116,6 +123,7 @@ class _MapScreenState extends State<MapScreen> {
           });
         },
         hasPolylines: _currentDrawing != null || _completedDrawings.isNotEmpty,
+        onColorChanged: _handleColorChanged,
       ),
       body: Stack(
         children: [

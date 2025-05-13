@@ -4,16 +4,18 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../ai_popup_menu.dart';
 import 'drawing_button.dart';
+import 'drawing_map_renderer.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final GoogleSignInAccount user;
   final VoidCallback onLogout;
   final Position? currentPosition;
   final Function(List<LatLng>) onDrawingGenerated;
-  final Function(List<LatLng>, bool) onPointsUpdated;
+  final Function(ColoredDrawing, bool) onPointsUpdated;
   final bool isDrawingVisible;
   final VoidCallback onToggleVisibility;
   final bool hasPolylines;
+  final Function(Color)? onColorChanged;
 
   const AppTopBar({
     super.key,
@@ -25,6 +27,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.isDrawingVisible,
     required this.onToggleVisibility,
     required this.hasPolylines,
+    this.onColorChanged,
   });
 
   @override
@@ -48,7 +51,11 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               IconButton(icon: const Icon(Icons.logout), onPressed: onLogout),
-              DrawingButton(user: user, onPointsUpdated: onPointsUpdated),
+              DrawingButton(
+                user: user,
+                onPointsUpdated: onPointsUpdated,
+                onColorChanged: onColorChanged,
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: AiPopupMenu(

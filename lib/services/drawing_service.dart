@@ -1,6 +1,7 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/material.dart';
 
 class DrawingService {
   static const String _baseUrl =
@@ -11,6 +12,7 @@ class DrawingService {
     required String email,
     required String? name,
     double? distance,
+    String? color,
   }) async {
     try {
       if (email.isEmpty) return false;
@@ -22,15 +24,21 @@ class DrawingService {
               })
           .toList();
 
+      final payload = {
+        'email': email,
+        'username': name ?? email.split('@')[0],
+        'coordinates': coordinates,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      if (color != null) {
+        payload['color'] = color;
+      }
+
       final response = await http.post(
         Uri.parse('$_baseUrl/saveDrawing'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'username': name ?? email.split('@')[0],
-          'coordinates': coordinates,
-          'timestamp': DateTime.now().toIso8601String(),
-        }),
+        body: json.encode(payload),
       );
 
       if (response.statusCode == 200) {
