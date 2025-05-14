@@ -29,13 +29,28 @@ class _DrawingRecordState extends State<DrawingRecord> {
     super.dispose();
   }
 
-  List<LatLng> _parseCoordinates(List<dynamic> coordinatesJson) {
+  List<Map<String, dynamic>> _parseCoordinatesWithColor(
+      List<dynamic> coordinatesJson) {
     return coordinatesJson.map((coord) {
-      return LatLng(
+      final position = LatLng(
         coord['lat'].toDouble(),
         coord['lng'].toDouble(),
       );
+
+      final String colorString = coord['color'];
+      Color color = Color(int.parse('0xFF${colorString.substring(1)}'));
+
+      return {
+        'position': position,
+        'color': color,
+      };
     }).toList();
+  }
+
+  List<LatLng> _getPositions(List<Map<String, dynamic>> coordinatesWithColor) {
+    return coordinatesWithColor
+        .map((item) => item['position'] as LatLng)
+        .toList();
   }
 
   LatLngBounds _calculateBounds(List<LatLng> coordinates) {
@@ -77,10 +92,28 @@ class _DrawingRecordState extends State<DrawingRecord> {
 
   @override
   Widget build(BuildContext context) {
-    final coordinates = _parseCoordinates(widget.drawing['coordinates']);
-    final bounds = _calculateBounds(coordinates);
+    final coordinatesWithColor =
+        _parseCoordinatesWithColor(widget.drawing['coordinates']);
+    final positions = _getPositions(coordinatesWithColor);
+    final bounds = _calculateBounds(positions);
     final drawingId = widget.drawing['id'];
     final voteCount = widget.drawing['voteCount'] ?? 0;
+
+    Set<Polyline> polylines = {};
+    for (int i = 0; i < coordinatesWithColor.length - 1; i++) {
+      final startPoint = coordinatesWithColor[i]['position'] as LatLng;
+      final endPoint = coordinatesWithColor[i + 1]['position'] as LatLng;
+      final color = coordinatesWithColor[i + 1]['color'] as Color;
+
+      polylines.add(
+        Polyline(
+          polylineId: PolylineId('drawing_${drawingId}_segment_$i'),
+          points: [startPoint, endPoint],
+          color: color,
+          width: 3,
+        ),
+      );
+    }
 
     return Card(
       margin: const EdgeInsets.all(8.0),
@@ -100,7 +133,6 @@ class _DrawingRecordState extends State<DrawingRecord> {
                   ),
                 ),
                 const Spacer(),
-                // Vote count and button
                 VoteButton(
                   drawingId: drawingId,
                   voterEmail: widget.voterEmail,
@@ -130,28 +162,21 @@ class _DrawingRecordState extends State<DrawingRecord> {
                   );
                 },
                 initialCameraPosition: CameraPosition(
-                  target: coordinates.isNotEmpty
-                      ? coordinates[0]
-                      : const LatLng(0, 0),
+                  target:
+                      positions.isNotEmpty ? positions[0] : const LatLng(0, 0),
                   zoom: 15,
                 ),
                 markers: {},
-                polylines: {
-                  Polyline(
-                    polylineId: PolylineId('drawing_$drawingId'),
-                    points: coordinates,
-                    color: Colors.red,
-                    width: 3,
-                  ),
-                },
-                circles: coordinates.map((point) {
+                polylines: polylines,
+                circles: coordinatesWithColor.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final point = entry.value;
                   return Circle(
-                    circleId: CircleId(
-                        'point_${coordinates.indexOf(point)}_$drawingId'),
-                    center: point,
+                    circleId: CircleId('point_${index}_$drawingId'),
+                    center: point['position'] as LatLng,
                     radius: 3,
-                    fillColor: Colors.red,
-                    strokeColor: Colors.red,
+                    fillColor: point['color'] as Color,
+                    strokeColor: point['color'] as Color,
                   );
                 }).toSet(),
                 mapToolbarEnabled: false,

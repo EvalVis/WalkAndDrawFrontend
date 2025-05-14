@@ -22,7 +22,7 @@ class DrawingService {
           .map((point) => {
                 'lat': point.position.latitude,
                 'lng': point.position.longitude,
-                'color': point.color,
+                'color': _colorToHex(point.color),
               })
           .toList();
 
@@ -59,6 +59,14 @@ class DrawingService {
       print('Error saving drawing: $e');
       return false;
     }
+  }
+
+  String _colorToHex(Color color) {
+    final a = (color.a * 255).round().toRadixString(16).padLeft(2, '0');
+    final r = (color.r * 255).round().toRadixString(16).padLeft(2, '0');
+    final g = (color.g * 255).round().toRadixString(16).padLeft(2, '0');
+    final b = (color.b * 255).round().toRadixString(16).padLeft(2, '0');
+    return '#$a$r$g$b';
   }
 
   Future<bool> updateDistance({
