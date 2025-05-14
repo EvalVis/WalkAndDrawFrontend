@@ -96,17 +96,11 @@ class _DrawingButtonState extends State<DrawingButton> {
       );
       widget.onPointsUpdated(completedDrawing, true);
 
-      // Convert to LatLng points for the service
-      final latLngPoints =
-          _currentDrawingPoints.map((cp) => cp.position).toList();
-
       await _drawingService.saveDrawing(
-        points: latLngPoints,
-        email: widget.user.email,
-        name: widget.user.displayName,
-        distance: _totalDistance,
-        color: _currentColor.value.toString(), // Save last color as string
-      );
+          points: _currentDrawingPoints,
+          email: widget.user.email,
+          name: widget.user.displayName,
+          distance: _totalDistance);
 
       setState(() {
         _isManualDrawing = false;

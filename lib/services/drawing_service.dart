@@ -2,13 +2,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../components/drawing_map_renderer.dart';
 
 class DrawingService {
   static const String _baseUrl =
       'https://us-central1-walkanddraw-459410.cloudfunctions.net';
 
   Future<bool> saveDrawing({
-    required List<LatLng> points,
+    required List<ColoredPoint> points,
     required String email,
     required String? name,
     double? distance,
@@ -19,8 +20,9 @@ class DrawingService {
 
       final coordinates = points
           .map((point) => {
-                'lat': point.latitude,
-                'lng': point.longitude,
+                'lat': point.position.latitude,
+                'lng': point.position.longitude,
+                'color': point.color,
               })
           .toList();
 
@@ -31,10 +33,6 @@ class DrawingService {
         'timestamp': DateTime.now().toIso8601String(),
       };
 
-      if (color != null) {
-        payload['color'] = color;
-      }
-
       final response = await http.post(
         Uri.parse('$_baseUrl/saveDrawing'),
         headers: {'Content-Type': 'application/json'},
@@ -44,7 +42,6 @@ class DrawingService {
       if (response.statusCode == 200) {
         print('Drawing saved successfully: ${response.body}');
 
-        // If distance is provided, update it too
         if (distance != null) {
           await updateDistance(
             email: email,
