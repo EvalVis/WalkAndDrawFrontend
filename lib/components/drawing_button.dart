@@ -164,9 +164,10 @@ class _DrawingButtonState extends State<DrawingButton> {
       context: context,
       builder: (context) => _SaveDrawingDialog(
         user: widget.user,
-        onSave: (visibility, teamId) async {
+        onSave: (visibility, teamIds) async {
           Navigator.pop(context);
 
+          // Always save the drawing publicly if isPublic is true
           if (visibility == DrawingVisibility.public) {
             await _drawingService.saveDrawing(
               points: _currentDrawingPoints,
@@ -174,16 +175,18 @@ class _DrawingButtonState extends State<DrawingButton> {
               name: widget.user.displayName,
               distance: _totalDistance,
             );
-          } else if (visibility == DrawingVisibility.team) {
+          }
+
+          // If teamIds is provided, also save to teams (this could happen in addition to public)
+          if (teamIds != null) {
             // For now this will not perform any operation
             // TODO: Implement team save logic
-          } else {
-            // For private, no operation for now
-            // TODO: Implement private save logic
+            print('Would save to teams: $teamIds');
           }
 
           setState(() {
             _isManualDrawing = false;
+            _isDrawingPaused = false;
             _currentDrawingPoints = [];
             _totalDistance = 0;
           });
@@ -290,7 +293,7 @@ class _DrawingButtonState extends State<DrawingButton> {
 
 class _SaveDrawingDialog extends StatefulWidget {
   final GoogleSignInAccount user;
-  final Function(DrawingVisibility visibility, String? teamId) onSave;
+  final Function(DrawingVisibility visibility, List<String>? teamIds) onSave;
 
   const _SaveDrawingDialog({
     Key? key,
@@ -303,8 +306,8 @@ class _SaveDrawingDialog extends StatefulWidget {
 }
 
 class _SaveDrawingDialogState extends State<_SaveDrawingDialog> {
-  DrawingVisibility _visibility = DrawingVisibility.public;
-  String? _selectedTeamId;
+  bool _isPublic = true;
+  Set<String> _selectedTeamIds = {};
   List<Team> _teams = [];
   bool _isLoading = true;
 
@@ -322,22 +325,25 @@ class _SaveDrawingDialogState extends State<_SaveDrawingDialog> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://us-central1-walkanddraw-7b9ea.cloudfunctions.net/getTeams?email=${widget.user.email}',
+          'https://us-central1-walkanddraw-459410.cloudfunctions.net/getTeams?email=${widget.user.email}',
         ),
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print('Teams loaded: ${data.length}');
         setState(() {
           _teams = data.map((team) => Team.fromJson(team)).toList();
           _isLoading = false;
         });
       } else {
+        print('Failed to load teams: ${response.statusCode}');
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('Error loading teams: $e');
       setState(() {
         _isLoading = false;
       });
@@ -352,68 +358,69 @@ class _SaveDrawingDialogState extends State<_SaveDrawingDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('How would you like to share your drawing?'),
-          const SizedBox(height: 16),
-          RadioListTile<DrawingVisibility>(
-            title: const Text('Public'),
+          CheckboxListTile(
+            title: const Text('Make drawing public'),
             subtitle: const Text('Everyone can see your drawing'),
-            value: DrawingVisibility.public,
-            groupValue: _visibility,
+            value: _isPublic,
             onChanged: (value) {
               setState(() {
-                _visibility = value!;
+                _isPublic = value ?? true;
               });
             },
+            controlAffinity: ListTileControlAffinity.leading,
           ),
-          RadioListTile<DrawingVisibility>(
-            title: const Text('Team'),
-            subtitle: const Text('Only your team members can see this drawing'),
-            value: DrawingVisibility.team,
-            groupValue: _visibility,
-            onChanged: (value) {
-              setState(() {
-                _visibility = value!;
-              });
-            },
+          const SizedBox(height: 16),
+          const Text(
+            'Share with teams:',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          if (_visibility == DrawingVisibility.team)
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _teams.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text('You don\'t have any teams yet'),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text('Select a team'),
-                          value: _selectedTeamId,
-                          items: _teams.map((team) {
-                            return DropdownMenuItem<String>(
-                              value: team.id,
-                              child: Text(team.name),
+          const SizedBox(height: 8),
+          _isLoading
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : _teams.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        'You don\'t have any teams yet',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    )
+                  : Container(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.3,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: _teams.map((team) {
+                            return CheckboxListTile(
+                              title: Text(team.name),
+                              value: _selectedTeamIds.contains(team.id),
+                              dense: true,
+                              onChanged: (selected) {
+                                setState(() {
+                                  if (selected ?? false) {
+                                    _selectedTeamIds.add(team.id);
+                                  } else {
+                                    _selectedTeamIds.remove(team.id);
+                                  }
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.trailing,
                             );
                           }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedTeamId = value;
-                            });
-                          },
                         ),
                       ),
-          RadioListTile<DrawingVisibility>(
-            title: const Text('Private'),
-            subtitle: const Text('Only you can see this drawing'),
-            value: DrawingVisibility.private,
-            groupValue: _visibility,
-            onChanged: (value) {
-              setState(() {
-                _visibility = value!;
-              });
-            },
-          ),
+                    ),
         ],
       ),
       actions: [
@@ -423,18 +430,14 @@ class _SaveDrawingDialogState extends State<_SaveDrawingDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            // Validate that a team is selected when team visibility is chosen
-            if (_visibility == DrawingVisibility.team &&
-                _selectedTeamId == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please select a team'),
-                ),
-              );
-              return;
-            }
+            // Determine the visibility based on checkboxes
+            DrawingVisibility visibility = _isPublic
+                ? DrawingVisibility.public
+                : DrawingVisibility.private;
 
-            widget.onSave(_visibility, _selectedTeamId);
+            // Pass the list of selected team IDs
+            widget.onSave(visibility,
+                _selectedTeamIds.isEmpty ? null : _selectedTeamIds.toList());
           },
           child: const Text('Publish Drawing'),
         ),
