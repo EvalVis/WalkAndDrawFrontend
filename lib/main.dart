@@ -4,6 +4,7 @@ import 'leaderboard_screen.dart';
 import 'drawings_screen.dart';
 import 'login_screen.dart';
 import 'map_screen.dart';
+import 'squad_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +99,9 @@ class _MainAppState extends State<MainApp> {
           DrawingsScreen(
             user: widget.user,
           ),
+          SquadScreen(
+            user: widget.user,
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -107,6 +111,10 @@ class _MainAppState extends State<MainApp> {
             _selectedIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
@@ -119,6 +127,10 @@ class _MainAppState extends State<MainApp> {
           BottomNavigationBarItem(
             icon: Icon(Icons.brush),
             label: 'Drawings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Squad',
           ),
         ],
       ),
