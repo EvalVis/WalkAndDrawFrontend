@@ -14,6 +14,8 @@ class DrawingService {
     required String? name,
     double? distance,
     String? color,
+    bool isPublic = false,
+    List<String>? teamIds,
   }) async {
     try {
       if (email.isEmpty) return false;
@@ -31,6 +33,8 @@ class DrawingService {
         'username': name ?? email.split('@')[0],
         'coordinates': coordinates,
         'timestamp': DateTime.now().toIso8601String(),
+        'isPublic': isPublic,
+        'teamIds': teamIds ?? [],
       };
 
       final response = await http.post(

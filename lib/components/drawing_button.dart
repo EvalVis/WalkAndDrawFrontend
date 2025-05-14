@@ -167,22 +167,18 @@ class _DrawingButtonState extends State<DrawingButton> {
         onSave: (visibility, teamIds) async {
           Navigator.pop(context);
 
-          // Always save the drawing publicly if isPublic is true
-          if (visibility == DrawingVisibility.public) {
-            await _drawingService.saveDrawing(
-              points: _currentDrawingPoints,
-              email: widget.user.email,
-              name: widget.user.displayName,
-              distance: _totalDistance,
-            );
-          }
+          // Determine if drawing is public
+          final isPublic = visibility == DrawingVisibility.public;
 
-          // If teamIds is provided, also save to teams (this could happen in addition to public)
-          if (teamIds != null) {
-            // For now this will not perform any operation
-            // TODO: Implement team save logic
-            print('Would save to teams: $teamIds');
-          }
+          // Save the drawing
+          await _drawingService.saveDrawing(
+            points: _currentDrawingPoints,
+            email: widget.user.email,
+            name: widget.user.displayName,
+            distance: _totalDistance,
+            isPublic: isPublic,
+            teamIds: teamIds,
+          );
 
           setState(() {
             _isManualDrawing = false;
